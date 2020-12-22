@@ -9,18 +9,19 @@ The repository includes the following feature.
 - Better Busybox
 - Dropbearmulti for ssh
 - dgbserver
+- post_init.sh (*for above 3.0.7_0008_0515, you can copy to /data/scripts/post_init.sh before upgrade 3.0.7_0008_0515, it will enable tty and telnetd without modified rootfs*)
 
-2. raw firmware
+1. raw firmware
 
     If using dd or bootloader to flash, need to use raw file with padded (boundary 0x20000).
 
-3. modified firmware
+2. modified firmware
 
     a. The modified firmwares was enabled tty rx and telnetd.
 
     b. Use fw_update to update.
 
-4. original firmware
+3. original firmware
 
 - Roll back to original firmware or upgrade firmware by fw_update.
 ```
