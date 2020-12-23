@@ -9,6 +9,7 @@ The repository includes the following feature.
 - Better Busybox
 - Dropbearmulti for ssh
 - dgbserver
+- minidlnad (copy minidland to /data/bin and copy minidland.conf to /data/etc)
 - post_init.sh (*for above 3.0.7_0008_0515, you can copy to /data/scripts/post_init.sh before upgrade 3.0.7_0008_0515, it will enable tty and telnetd without modified rootfs*)
 
 1. raw firmware
