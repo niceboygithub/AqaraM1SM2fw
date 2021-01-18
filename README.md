@@ -1,4 +1,4 @@
-# Aqara M2 (ZHWG12LM) Firmware
+# Aqara Gateway M1S (ZHWG15LM) M2 (ZHWG12LM) Firmware
 
 The repository includes the following feature.
 
@@ -11,7 +11,7 @@ The repository includes the following feature.
 - dgbserver
 - mosquitto 1.6.4 (copy mosquitto to /data/bin to run as public)
 - minidlnad (copy minidland to /data/bin and copy minidland.conf to /data/etc)
-- post_init.sh (*for above 3.0.7_0008_0515, you can copy to /data/scripts/post_init.sh before upgrade 3.0.7_0008_0515, it will enable tty and telnetd without modified rootfs*)
+- post_init.sh (*for M2 above 3.0.7_0008_0515, you can copy to /data/scripts/post_init.sh before upgrade 3.0.7_0008_0515, it will enable tty and telnetd without modified rootfs*)
 
 1. raw firmware
 
@@ -21,7 +21,7 @@ The repository includes the following feature.
 
     a. The modified firmwares was enabled tty rx and telnetd.
 
-    b. Use fw_update to update.
+    b. Can use fw_update to update.
 
 3. original firmware
 
