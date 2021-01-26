@@ -36,8 +36,10 @@ run_ble_dfu.sh /dev/ttyS1 full_125.gbl 125 1
 
 5. stock firmware
 
-6. scripts
+6. tools
 
-   The python script utility to generate firmware, calcuate checksum of boot_info and other functions.
+   The aqaragateway tool can help user to flash firmware by xmodem. The UART TTL need to wired out and connected with PC.
+   While wired out the UART of M1S, please use power board to provide 3.3V and 5V. Otherwise Gateway M1S will not work probably.
+   Notice: Do not use the 3.3 from USBtoUART.
 
 <a href="https://www.buymeacoffee.com/niceboygithub" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
