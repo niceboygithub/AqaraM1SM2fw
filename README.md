@@ -1,4 +1,4 @@
-# Aqara Gateway M1S (ZHWG15LM) M2 (ZHWG12LM) Firmware
+# Aqara Gateway M1S (ZHWG15LM) M2 (ZHWG12LM) P3 (KTBL12LM) H1 (QBCZWG11LM) Firmwares
 
 The repository includes the following feature.
 
