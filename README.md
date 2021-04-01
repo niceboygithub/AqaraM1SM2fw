@@ -33,7 +33,10 @@ fw_update linux.bin
 ```
 run_ble_dfu.sh /dev/ttyS1 full_125.gbl 125 1
 ```
-
+4. update zigbee firmware
+```
+zigbee_msnger zgb_ota /tmp/ota_dir/ControlBridge.bin
+```
 5. stock firmware
 
 6. tools
