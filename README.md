@@ -29,7 +29,7 @@ The repository includes the following feature.
 ```
 fw_update linux.bin
 ```
-- Update Silicon Lab. EFR32BG by run_ble_dfu.sh, for example:
+- Update BT firmware by run_ble_dfu.sh, for example:
 ```
 run_ble_dfu.sh /dev/ttyS1 full_125.gbl 125 1
 ```
