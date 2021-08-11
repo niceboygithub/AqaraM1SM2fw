@@ -45,4 +45,8 @@ zigbee_msnger zgb_ota /tmp/ota_dir/ControlBridge.bin
    While wired out the UART of M1S, please use power board to provide 3.3V and 5V. Otherwise Gateway M1S will not work probably.
    Notice: Do not use the 3.3 from USBtoUART.
 
+   If flash finish successfully, it will display 'Programming filename.bin_raw Done!'
+   <img src="https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/tools/flash_done.png">
+
+
 <a href="https://www.buymeacoffee.com/niceboygithub" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
