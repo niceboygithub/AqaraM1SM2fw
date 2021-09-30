@@ -1,5 +1,7 @@
 # Aqara Gateway M1S (ZHWG15LM) M2 (ZHWG12LM) P3 (KTBL12LM) H1 (QBCZWG11LM) Firmwares
 
+Notice: Aqara was not allow downgrade zigbee firmware from 0605 to 05XX  officially!
+
 The repository includes the following feature.
 
 1. binutils

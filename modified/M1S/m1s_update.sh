@@ -9,7 +9,7 @@ cd /tmp
 
 echo "Updating Coor"
 /tmp/curl -s -k -L -o /tmp/ControlBridge.bin https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/M1S/3.3.0_0020.0526/ControlBridge.bin
-[ "$(md5sum /tmp/ControlBridge.bin)" = "799ecb705ce22049566a0d772c93c2b2  /tmp/ControlBridge.bin" ] && zigbee_msnger zgb_ota /tmp/ControlBridge.bin
+[ "$(md5sum /tmp/ControlBridge.bin)" == "799ecb705ce22049566a0d772c93c2b2  /tmp/ControlBridge.bin" ] && zigbee_msnger zgb_ota /tmp/ControlBridge.bin
 [ "$(zigbee_msnger get_zgb_ver | grep coor)" != "coor ver =0526" ] && zigbee_msnger zgb_ota /tmp/ControlBridge.bin
 [ "x$(zigbee_msnger get_zgb_ver | grep Error)" != "x" ] && zigbee_msnger zgb_ota /tmp/ControlBridge.bin
 
