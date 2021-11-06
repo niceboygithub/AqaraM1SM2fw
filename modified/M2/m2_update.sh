@@ -51,10 +51,10 @@ MODEL_FILE="/data/utils/fw_manager.model"
 #
 # Version and md5sum
 #
-VERSION="3.3.2_0010.0610"
-COOR_MD5SUM="dbc8d7d2e0969d95534387af055fcd0d"
-KERNEL_MD5SUM="444cbca416dae2447944c6005f89d903"
-ROOTFS_MD5SUM="7b2e0e9461517eda866538c6751e7a1f"
+VERSION="3.3.3_0015.0611"
+COOR_MD5SUM="bbc7e1da0fd531a48a9c29eeaec97e4b"
+KERNEL_MD5SUM="e2be7ff7ad6a654ae7ce908e2d4f9521"
+ROOTFS_MD5SUM="8846630a98c1a70fd4e2db794697e4dd"
 BTBL_MD5SUM=""
 BTAPP_MD5SUM=""
 IRCTRL_MD5SUM=""
@@ -178,6 +178,7 @@ stop_aiot()
 {
     local d=0; local m=0; local b=0
     local a=0; local p=0; local z=0
+    local l=0;
 
     match_substring "$1" "d"; d=$?
     match_substring "$1" "m"; m=$?
@@ -191,6 +192,8 @@ stop_aiot()
 
     # Stop monitor.
     killall -9 app_monitor.sh
+
+    sleep 1.5
 
     #
     # Send a signal to programs.
@@ -237,6 +240,7 @@ stop_miot()
 {
     local b=0; local m=0; local h=0; local g=0
     local c=0; local z=0; local a=0; local p=0
+    local l=0;
 
     match_substring "$1" "b"; b=$?
     match_substring "$1" "m"; m=$?
@@ -249,6 +253,8 @@ stop_miot()
 
     # Stop monitor.
     killall -9 app_monitor.sh
+
+    sleep 1.5
 
     #
     # Send a signal to programs.
@@ -388,7 +394,7 @@ update_prepare()
     return 0
 }
 
-update_getpack()
+update_get_packages()
 {
     local platform="$1"
     local simple_model=""
@@ -679,7 +685,7 @@ updater()
     fi
 
     # Get DFU package and check it.
-    update_getpack "$platform" "$path" "$sign"
+    update_get_packages "$platform" "$path" "$sign"
     if [ $? -ne 0 ]; then
         update_failed "$platform" "getpack failed!" "true"
         return 1
@@ -756,6 +762,11 @@ initial()
     fi
 
     green_echo "type: $product, model: $model"
+
+    if [ "$product" != "lumi.gateway.iragl5" ]; then
+        red_echo "This is not supported M2 and exit!"
+        exit 1
+    fi
 }
 
 #
