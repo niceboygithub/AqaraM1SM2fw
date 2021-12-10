@@ -51,12 +51,12 @@ MODEL_FILE="/data/utils/fw_manager.model"
 #
 # Version and md5sum
 #
-VERSION="3.3.4_0017.0611"
+VERSION="3.3.5_0012.0611"
 COOR_MD5SUM="bbc7e1da0fd531a48a9c29eeaec97e4b"
-KERNEL_MD5SUM="b27adcb58936a8febc68596d3baa5fd8"
-ROOTFS_MD5SUM="a45abd44a10d14648f31b0ec67024ce0"
+KERNEL_MD5SUM="a5517840bcdfbc42b7cc3c55c10778e9"
+ROOTFS_MD5SUM="2aa87c2cc1d07fc282c0f1dab672f292"
 BTBL_MD5SUM=""
-BTAPP_MD5SUM=""
+BTAPP_MD5SUM="13626c0f3a15e2829f0f5b8ffc3fbcf6"
 IRCTRL_MD5SUM=""
 
 #
@@ -64,7 +64,8 @@ IRCTRL_MD5SUM=""
 #
 model=""
 ble_support=""
-UPDATE_BT=0
+UPDATE_BT_BL=0
+UPDATE_BT=1
 
 #
 # Enable debug, 0/1.
@@ -423,10 +424,11 @@ update_get_packages()
         [ "$(md5sum /tmp/IRController.bin)" != "${IRCTRL_MD5SUM}  /tmp/IRController.bin" ] && return 1
     fi
 
-    if [ "x${UPDATE_BT}" == "x1" ]; then
+    if [ "x${UPDATE_BT_BL}" == "x1" ]; then
         /tmp/curl -s -k -L -o /tmp/bootloader.gbl https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/bootloader.gbl
         [ "$(md5sum /tmp/bootloader.gbl)" != "${BTBL_MD5SUM}  /tmp/bootloader.gbl" ] && return 1
-
+    fi
+    if [ "x${UPDATE_BT}" == "x1" ]; then
         /tmp/curl -s -k -L -o /tmp/full.gbl https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/full.gbl
         [ "$(md5sum /tmp/full.gbl)" != "${BTAPP_MD5SUM}  /tmp/full.gbl" ] && return 1
     fi
