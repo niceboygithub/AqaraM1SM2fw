@@ -51,10 +51,10 @@ MODEL_FILE="/data/utils/fw_manager.model"
 #
 # Version and md5sum
 #
-VERSION="3.3.5_0012.0611"
-COOR_MD5SUM="bbc7e1da0fd531a48a9c29eeaec97e4b"
-KERNEL_MD5SUM="a5517840bcdfbc42b7cc3c55c10778e9"
-ROOTFS_MD5SUM="2aa87c2cc1d07fc282c0f1dab672f292"
+VERSION="3.3.6_0024.0613"
+COOR_MD5SUM="f87a568371e64689184dc764d5f71c42"
+KERNEL_MD5SUM="dedcfe981990a1d82f6a6a10c745576d"
+ROOTFS_MD5SUM="ef2d6778a8caa4e7f3fdb5694f4c64a4"
 BTBL_MD5SUM=""
 BTAPP_MD5SUM="13626c0f3a15e2829f0f5b8ffc3fbcf6"
 IRCTRL_MD5SUM=""
@@ -64,8 +64,6 @@ IRCTRL_MD5SUM=""
 #
 model=""
 ble_support=""
-UPDATE_BT_BL=0
-UPDATE_BT=1
 
 #
 # Enable debug, 0/1.
@@ -420,15 +418,17 @@ update_get_packages()
 
     echo "Get packages, please wait..."
     if [ "x${simple_model}" == "xP3" ]; then
-        /tmp/curl -s -k -L -o /tmp/IRController.bin https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/IRController.bin
-        [ "$(md5sum /tmp/IRController.bin)" != "${IRCTRL_MD5SUM}  /tmp/IRController.bin" ] && return 1
+        if [ "x${IRCTRL_MD5SUM}" != "x" ]; then
+            /tmp/curl -s -k -L -o /tmp/IRController.bin https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/IRController.bin
+            [ "$(md5sum /tmp/IRController.bin)" != "${IRCTRL_MD5SUM}  /tmp/IRController.bin" ] && return 1
+        fi
     fi
 
-    if [ "x${UPDATE_BT_BL}" == "x1" ]; then
+    if [ "x${BTBL_MD5SUM}" != "x" ]; then
         /tmp/curl -s -k -L -o /tmp/bootloader.gbl https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/bootloader.gbl
         [ "$(md5sum /tmp/bootloader.gbl)" != "${BTBL_MD5SUM}  /tmp/bootloader.gbl" ] && return 1
     fi
-    if [ "x${UPDATE_BT}" == "x1" ]; then
+    if [ "x${BTAPP_MD5SUM}" != "x" ]; then
         /tmp/curl -s -k -L -o /tmp/full.gbl https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/full.gbl
         [ "$(md5sum /tmp/full.gbl)" != "${BTAPP_MD5SUM}  /tmp/full.gbl" ] && return 1
     fi
