@@ -51,10 +51,10 @@ MODEL_FILE="/data/utils/fw_manager.model"
 #
 # Version and md5sum
 #
-VERSION="3.4.5_0003.0618"
+VERSION="3.4.6_0007.0618"
 COOR_MD5SUM="52271aa75291b383687de6b1de71d780"
-KERNEL_MD5SUM="a57506c71e5c49b9526456012dccb5bf"
-ROOTFS_MD5SUM="12acd196d3fa3ee057196f92d4e9a8b2"
+KERNEL_MD5SUM="d54b1f87991bc136b876e253d4afc04d"
+ROOTFS_MD5SUM="1ce4279537cfbaaa001a3f60cf0d3383"
 BTBL_MD5SUM=""
 BTAPP_MD5SUM=""
 IRCTRL_MD5SUM=""
@@ -416,6 +416,7 @@ update_get_packages()
         return 1
     fi
 
+    echo "Update to ${VERSION}"
     echo "Get packages, please wait..."
     if [ "x${simple_model}" == "xP3" ]; then
         if [ "x${IRCTRL_MD5SUM}" != "x" ]; then
