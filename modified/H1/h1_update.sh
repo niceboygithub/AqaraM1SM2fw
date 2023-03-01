@@ -4,7 +4,7 @@ REVISION="2"
 REVISION_FILE="/data/utils/fw_manager.revision"
 
 #
-# @file    m1s_update.sh
+# @file    h1_update.sh
 # @brief   This script is used to manage program operations,
 #          including, but not limited to,
 #          1. update firmware.
@@ -51,10 +51,11 @@ MODEL_FILE="/data/utils/fw_manager.model"
 #
 # Version and md5sum
 #
-VERSION="3.5.0_0013.0736"
+FIRMWARE_URL="https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main"
+VERSION="3.5.2_0010.0736"
 COOR_MD5SUM="7a0a2d48131e9ef109a7556aec6a6bcb"
-KERNEL_MD5SUM="f469d5c4ea7cd07afea5981db72875e2"
-ROOTFS_MD5SUM="71e180ea0e440aac9aa2d3e9f5a5bc2b"
+KERNEL_MD5SUM="87207bb3ec288c5ee5c781dc71798241"
+ROOTFS_MD5SUM="f03368fbabfdefc38b68e146d51f7332"
 BTBL_MD5SUM=""
 BTAPP_MD5SUM=""
 IRCTRL_MD5SUM=""
@@ -65,6 +66,13 @@ IRCTRL_MD5SUM=""
 model=""
 ble_support=""
 UPDATE_BT=0
+
+kernel_bin_="$ota_dir_/linux.bin"
+rootfs_bin_="$ota_dir_/root.bin"
+zbcoor_bin_="$ota_dir_/ControlBridge.bin"
+irctrl_bin_="$ota_dir_/IRController.bin"
+ble_bl_bin_="$ota_dir_/bootloader.gbl"
+ble_app_bin_="$ota_dir_/full.gbl"
 
 #
 # Enable debug, 0/1.
@@ -149,13 +157,13 @@ set_tags()
 usage_helper()
 {
     green_echo "Helper to show how to use this script."
-    green_echo "Usage: m1s_update.sh -h [$OPTIONS]."
+    green_echo "Usage: h1_update.sh -h [$OPTIONS]."
 }
 
 usage_updater()
 {
     green_echo "Update firmware."
-    green_echo "Usage: m2_update.sh -u [$UPDATER] [path]."
+    green_echo "Usage: h1_update.sh -u [$UPDATER] [path]."
     green_echo " -s : check md5sum."
     green_echo " -n : don't check md5sum."
 }
@@ -178,6 +186,7 @@ stop_aiot()
 {
     local d=0; local m=0; local b=0
     local a=0; local p=0; local z=0
+    local l=0
 
     match_substring "$1" "d"; d=$?
     match_substring "$1" "m"; m=$?
@@ -201,7 +210,7 @@ stop_aiot()
     if [ $a -eq 0 ]; then killall ha_agent         ;fi
     if [ $p -eq 0 ]; then killall property_service ;fi
     if [ $z -eq 0 ]; then killall zigbee_agent     ;fi
-    if [ $l -eq 0 ]; then killall ha_ble           ;fi
+    if [ $l -eq 0 ]; then killall ha_lanbox        ;fi
 
     sleep 1
 
@@ -214,7 +223,7 @@ stop_aiot()
     if [ $a -eq 0 ]; then killall -9 ha_agent         ;fi
     if [ $p -eq 0 ]; then killall -9 property_service ;fi
     if [ $z -eq 0 ]; then killall -9 zigbee_agent     ;fi
-    if [ $l -eq 0 ]; then killall -9 ha_ble           ;fi
+    if [ $l -eq 0 ]; then killall -9 ha_lanbox        ;fi
 }
 
 #
@@ -402,7 +411,7 @@ update_getpack()
     # Aqara Hub M2.
     elif [ "$model" = "AH_M2_BLE" ]; then simple_model="M2"
     # Aqara Hub H1.
-    elif [ "$model" = "AH_H1" ];  then simple_model="H1"
+    elif [ "$model" = "AH_BOX" ];  then simple_model="H1"
     # End
     fi
 
@@ -413,25 +422,25 @@ update_getpack()
 
     echo "Get packages, please wait..."
     if [ "x${simple_model}" == "xP3" ]; then
-        /tmp/curl -s -k -L -o /tmp/IRController.bin https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/IRController.bin
+        /tmp/curl -s -k -L -o /tmp/IRController.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/IRController.bin
         [ "$(md5sum /tmp/IRController.bin)" != "${IRCTRL_MD5SUM}  /tmp/IRController.bin" ] && return 1
     fi
 
     if [ "x${UPDATE_BT}" == "x1" ]; then
-        /tmp/curl -s -k -L -o /tmp/bootloader.gbl https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/bootloader.gbl
+        /tmp/curl -s -k -L -o /tmp/bootloader.gbl ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/bootloader.gbl
         [ "$(md5sum /tmp/bootloader.gbl)" != "${BTBL_MD5SUM}  /tmp/bootloader.gbl" ] && return 1
 
-        /tmp/curl -s -k -L -o /tmp/full.gbl https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/full.gbl
+        /tmp/curl -s -k -L -o /tmp/full.gbl ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/full.gbl
         [ "$(md5sum /tmp/full.gbl)" != "${BTAPP_MD5SUM}  /tmp/full.gbl" ] && return 1
     fi
 
-    /tmp/curl -s -k -L -o /tmp/ControlBridge.bin https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/ControlBridge.bin
+    /tmp/curl -s -k -L -o /tmp/ControlBridge.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/ControlBridge.bin
     [ "$(md5sum /tmp/ControlBridge.bin)" != "${COOR_MD5SUM}  /tmp/ControlBridge.bin" ] && return 1
 
-    /tmp/curl -s -k -L -o /tmp/linux.bin https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/linux_${VERSION}.bin
+    /tmp/curl -s -k -L -o /tmp/linux.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/linux_${VERSION}.bin
     [ "$(md5sum /tmp/linux.bin)" != "${KERNEL_MD5SUM}  /tmp/linux.bin" ] && return 1
 
-    /tmp/curl -s -k -L -o /tmp/rootfs.bin https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/${simple_model}/${VERSION}/rootfs_${VERSION}_modified.bin
+    /tmp/curl -s -k -L -o /tmp/rootfs.bin ${FIRMWARE_URL}/modified/${simple_model}/${VERSION}/rootfs_${VERSION}_modified.bin
     [ "$(md5sum /tmp/rootfs.bin)" != "${ROOTFS_MD5SUM}  /tmp/rootfs.bin" ] && return 1
 
     echo "Got packages done"
@@ -482,13 +491,6 @@ vertify_block()
 
     rm -fr $flash_ok_
 }
-    kernel_bin_="$ota_dir_/linux.bin"
-    rootfs_bin_="$ota_dir_/root.bin"
-    zbcoor_bin_="$ota_dir_/ControlBridge.bin"
-    irctrl_bin_="$ota_dir_/IRController.bin"
-    ble_bl_bin_="$ota_dir_/bootloader.gbl"
-    ble_app_bin_="$ota_dir_/full.gbl"
-
 
 update_before_start()
 {
@@ -628,6 +630,7 @@ update_failed()
 update_done()
 {
     update_clean
+    setprop sys.dfu_progress 100
     sleep 1
     sync
     sleep 6
@@ -658,7 +661,7 @@ helper()
 updater()
 {
     local sign="0"
-    local path="/tmp"
+    local path="/tmp/fw.tar.gz"
 
     # Check file existed or not.
     if [ ! -e "/tmp/curl" ]; then update_failed "$platform" "/tmp/curl not found!"; return 1; fi
@@ -739,7 +742,7 @@ initial()
     green_echo "$1 revision: $REVISION"
 
     local product=`info_model`
-    ble_support=`getprop persist.sys.ble_supported`
+
     # Air Condition.
     if   [ "$product" = "lumi.aircondition.acn05" ]; then model="AC_P3"
     elif [ "$product" = "lumi.aircondition.acn04" ]; then model="AC_P3"
@@ -752,6 +755,7 @@ initial()
     elif [ "$product" = "lumi.gateway.iragl5" ];  then model="AH_M2_BLE"
     elif [ "$product" = "lumi.gateway.iragl6" ];  then model="AH_M2_BLE"
     elif [ "$product" = "lumi.gateway.iragl7" ];  then model="AH_M2_BLE"
+    elif [ "$product" = "lumi.gateway.sacn01" ]; then model="AH_BOX"
     # End
     fi
 
