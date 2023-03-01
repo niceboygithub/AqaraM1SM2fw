@@ -42,11 +42,12 @@ DEFAULT_PLATFORM="aiot"
 MODEL_FILE="/data/utils/fw_manager.model"
 
 #
-# Product model, support list: AC_P3, AH_M1S, AH_M2.
+# Product model, support list: AC_P3, AH_M1S, AH_M2, AH_H1.
 #
 # AC_P3 : Air Condition P3.
 # AH_M1S: Aqara Hub M1S.
 # AH_M2 : Aqara Hub M2.
+# AH_H1 : Aqara Hub H1.
 
 #
 # Version and md5sum
@@ -752,6 +753,8 @@ initial()
     elif [ "$product" = "lumi.gateway.iragl5" ];  then model="AH_M2_BLE"
     elif [ "$product" = "lumi.gateway.iragl6" ];  then model="AH_M2_BLE"
     elif [ "$product" = "lumi.gateway.iragl7" ];  then model="AH_M2_BLE"
+    # Aqara Hub M2.
+    elif [ "$product" = "lumi.gateway.sacn01" ]; then model="AH_H1"
     # End
     fi
 
