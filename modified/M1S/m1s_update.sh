@@ -31,6 +31,14 @@ OPTIONS="-h;-u;"
 PLATFORMS="-a;-m"
 
 #
+# Updater operations.
+# -s: check sign.
+# -n: ignore sign.
+# -o: original firmware.
+#
+UPDATER="-s;-n;-o"
+
+#
 # Default platform.
 # Must in aiot;miot.
 #
@@ -47,17 +55,30 @@ MODEL_FILE="/data/utils/fw_manager.model"
 # AC_P3 : Air Condition P3.
 # AH_M1S: Aqara Hub M1S.
 # AH_M2 : Aqara Hub M2.
+#
+# note: default is unknow.
+#
+model=""
 
 #
 # Version and md5sum
 #
-VERSION="3.5.2_0010.0636"
+FIRMWARE_URL="https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main"
+VERSION="3.5.2_0010.0636_mi_4.0.3_0012"
 COOR_MD5SUM="c81492214c5b367c0bb31b14291f7fa6"
-KERNEL_MD5SUM="5639a98eb759ce84ab892fc0f08e0a1f"
-ROOTFS_MD5SUM="5fd9a216ceba9143aa4816d5088788f1"
+KERNEL_MD5SUM="2d75b20a09e2574dbda3f3d44b798977"
+ROOTFS_MD5SUM="5506b4249d8f604eb1baf17e6d2a4e40"
+MODIFIED_ROOTFS_MD5SUM="7b51ab1b16f546ac9560f7e4fe32739b"
 BTBL_MD5SUM=""
 BTAPP_MD5SUM=""
 IRCTRL_MD5SUM=""
+
+kernel_bin_="$ota_dir_/linux.bin"
+rootfs_bin_="$ota_dir_/root.bin"
+zbcoor_bin_="$ota_dir_/ControlBridge.bin"
+irctrl_bin_="$ota_dir_/IRController.bin"
+ble_bl_bin_="$ota_dir_/bootloader.gbl"
+ble_app_bin_="$ota_dir_/full.gbl"
 
 #
 # note: default is unknow.
@@ -66,6 +87,7 @@ model=""
 ble_support=""
 UPDATE_BT=0
 
+FW_TYPE=1
 #
 # Enable debug, 0/1.
 #
@@ -158,6 +180,8 @@ usage_updater()
     green_echo "Usage: m2_update.sh -u [$UPDATER] [path]."
     green_echo " -s : check md5sum."
     green_echo " -n : don't check md5sum."
+    green_echo " -m : modified firmware."
+    green_echo " -o : original firmware."
 }
 
 #
@@ -388,7 +412,7 @@ update_prepare()
     return 0
 }
 
-update_getpack()
+update_get_packages()
 {
     local platform="$1"
     local simple_model=""
@@ -411,28 +435,48 @@ update_getpack()
         return 1
     fi
 
+    echo "Update to ${VERSION}"
     echo "Get packages, please wait..."
     if [ "x${simple_model}" == "xP3" ]; then
-        /tmp/curl -s -k -L -o /tmp/IRController.bin https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/IRController.bin
-        [ "$(md5sum /tmp/IRController.bin)" != "${IRCTRL_MD5SUM}  /tmp/IRController.bin" ] && return 1
+        if [ "x${IRCTRL_MD5SUM}" != "x" ]; then
+            /tmp/curl -s -k -L -o /tmp/IRController.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/IRController.bin
+            [ "$(md5sum /tmp/IRController.bin)" != "${IRCTRL_MD5SUM}  /tmp/IRController.bin" ] && return 1
+        fi
     fi
 
     if [ "x${UPDATE_BT}" == "x1" ]; then
-        /tmp/curl -s -k -L -o /tmp/bootloader.gbl https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/bootloader.gbl
-        [ "$(md5sum /tmp/bootloader.gbl)" != "${BTBL_MD5SUM}  /tmp/bootloader.gbl" ] && return 1
+        if [ "x${BTBL_MD5SUM}" != "x" ]; then
+            /tmp/curl -s -k -L -o /tmp/bootloader.gbl ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/bootloader.gbl
+            [ "$(md5sum /tmp/bootloader.gbl)" != "${BTBL_MD5SUM}  /tmp/bootloader.gbl" ] && return 1
+        fi
 
-        /tmp/curl -s -k -L -o /tmp/full.gbl https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/full.gbl
-        [ "$(md5sum /tmp/full.gbl)" != "${BTAPP_MD5SUM}  /tmp/full.gbl" ] && return 1
+        if [ "x${BTAPP_MD5SUM}" != "x" ]; then
+            /tmp/curl -s -k -L -o /tmp/full.gbl ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/full.gbl
+            [ "$(md5sum /tmp/full.gbl)" != "${BTAPP_MD5SUM}  /tmp/full.gbl" ] && return 1
+        fi
     fi
 
-    /tmp/curl -s -k -L -o /tmp/ControlBridge.bin https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/ControlBridge.bin
-    [ "$(md5sum /tmp/ControlBridge.bin)" != "${COOR_MD5SUM}  /tmp/ControlBridge.bin" ] && return 1
+    if [ "x${COOR_MD5SUM}" != "x" ]; then
+        /tmp/curl -s -k -L -o /tmp/ControlBridge.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/ControlBridge.bin
+        [ "$(md5sum /tmp/ControlBridge.bin)" != "${COOR_MD5SUM}  /tmp/ControlBridge.bin" ] && return 1
+    fi
 
-    /tmp/curl -s -k -L -o /tmp/linux.bin https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/original/${simple_model}/${VERSION}/linux_${VERSION}.bin
-    [ "$(md5sum /tmp/linux.bin)" != "${KERNEL_MD5SUM}  /tmp/linux.bin" ] && return 1
+    if [ "x${KERNEL_MD5SUM}" != "x" ]; then
+        /tmp/curl -s -k -L -o /tmp/linux.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/linux_${VERSION}.bin
+        [ "$(md5sum /tmp/linux.bin)" != "${KERNEL_MD5SUM}  /tmp/linux.bin" ] && return 1
+    fi
 
-    /tmp/curl -s -k -L -o /tmp/rootfs.bin https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/${simple_model}/${VERSION}/rootfs_${VERSION}_modified.bin
-    [ "$(md5sum /tmp/rootfs.bin)" != "${ROOTFS_MD5SUM}  /tmp/rootfs.bin" ] && return 1
+    if [ "$FW_TYPE" == "0" ]; then
+        if [ "x${ROOTFS_MD5SUM}" != "x" ]; then
+            /tmp/curl -s -k -L -o /tmp/rootfs.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/root_${VERSION}.bin
+            [ "$(md5sum /tmp/rootfs.bin)" != "${ROOTFS_MD5SUM}  /tmp/rootfs.bin" ] && return 1
+        fi
+    else
+        if [ "x${MODIFIED_ROOTFS_MD5SUM}" != "x" ]; then
+            /tmp/curl -s -k -L -o /tmp/rootfs.bin ${FIRMWARE_URL}/modified/${simple_model}/${VERSION}/rootfs_${VERSION}_modified.bin
+            [ "$(md5sum /tmp/rootfs.bin)" != "${MODIFIED_ROOTFS_MD5SUM}  /tmp/rootfs.bin" ] && return 1
+        fi
+    fi
 
     echo "Got packages done"
     return 0
@@ -482,13 +526,6 @@ vertify_block()
 
     rm -fr $flash_ok_
 }
-    kernel_bin_="$ota_dir_/linux.bin"
-    rootfs_bin_="$ota_dir_/root.bin"
-    zbcoor_bin_="$ota_dir_/ControlBridge.bin"
-    irctrl_bin_="$ota_dir_/IRController.bin"
-    ble_bl_bin_="$ota_dir_/bootloader.gbl"
-    ble_app_bin_="$ota_dir_/full.gbl"
-
 
 update_before_start()
 {
@@ -563,7 +600,7 @@ update_start()
                 return 1
             fi
 	    rm -f "$zbcoor_bin_bk_"
-    fi
+        fi
 
         # RGB light control by the coordinator.
         # Update coordinator will to stop light flashing.
@@ -658,13 +695,17 @@ helper()
 updater()
 {
     local sign="0"
-    local path="/tmp"
+    local path="/tmp/fw.tar.gz"
 
     # Check file existed or not.
     if [ ! -e "/tmp/curl" ]; then update_failed "$platform" "/tmp/curl not found!"; return 1; fi
 
     # Need check sign?
-    if [ "$2" = "-s" ]; then sign="1"; fi
+    if [ "$1" = "-s" ]; then sign="1"; fi
+
+    # original or modified firmware?
+    if [ "$1" = "-o" ]; then FW_TYPE="0"; fi
+    if [ "$1" = "-m" ]; then FW_TYPE="1"; fi
 
     local platform=`getprop persist.sys.cloud`
     if [ "$platform" = "" ]; then platform=$DEFAULT_PLATFORM; fi
@@ -679,7 +720,7 @@ updater()
     fi
 
     # Get DFU package and check it.
-    update_getpack "$platform" "$path" "$sign"
+    update_get_packages "$platform" "$path" "$sign"
     if [ $? -ne 0 ]; then
         update_failed "$platform" "getpack failed!" "true"
         return 1
@@ -758,7 +799,7 @@ initial()
     green_echo "type: $product, model: $model"
 
     if [ "$product" != "lumi.gateway.acn01" ]; then
-        echo "This is not supported M1S and exit!"
+        red_echo "This is not supported M1S and exit!"
         exit 1
     fi
 }
