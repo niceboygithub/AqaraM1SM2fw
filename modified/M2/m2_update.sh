@@ -64,11 +64,11 @@ model=""
 # Version and md5sum
 #
 FIRMWARE_URL="https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main"
-VERSION="3.5.3_0012.0640"
-COOR_MD5SUM="dd32a685c499113913ceb9e120d53e92"
-KERNEL_MD5SUM="50154a3a6b75570352ca81aa95c85446"
-ROOTFS_MD5SUM="b2b6fb25e191f13b16639a91d27052c1"
-MODIFIED_ROOTFS_MD5SUM="52ab026f9602213de2c0c7ac5243636e"
+VERSION="4.0.1_0012.0642"
+COOR_MD5SUM="c510d09ae84500ae87602c42af22acef"
+KERNEL_MD5SUM="9adafc04cb1f93b192e07fcf9855d061"
+ROOTFS_MD5SUM="ad70d45b7c41bbac0b0735e92b699753"
+MODIFIED_ROOTFS_MD5SUM="73e4319a4b934d1640edf098e552ce01"
 BTBL_MD5SUM=""
 BTAPP_MD5SUM=""
 IRCTRL_MD5SUM=""
@@ -471,7 +471,7 @@ update_get_packages()
 
     if [ "$FW_TYPE" == "0" ]; then
         if [ "x${ROOTFS_MD5SUM}" != "x" ]; then
-            /tmp/curl -s -k -L -o /tmp/rootfs.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/rootfs_${VERSION}.bin
+            /tmp/curl -s -k -L -o /tmp/rootfs.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/root_${VERSION}.bin
             [ "$(md5sum /tmp/rootfs.bin)" != "${ROOTFS_MD5SUM}  /tmp/rootfs.bin" ] && return 1
         fi
     else
@@ -602,8 +602,8 @@ update_start()
                 setprop sys.dfu_progress -1
                 return 1
             fi
-	    rm -f "$zbcoor_bin_bk_"
-    fi
+	        rm -f "$zbcoor_bin_bk_"
+        fi
 
         # RGB light control by the coordinator.
         # Update coordinator will to stop light flashing.
