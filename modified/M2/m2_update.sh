@@ -64,11 +64,11 @@ model=""
 # Version and md5sum
 #
 FIRMWARE_URL="https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main"
-VERSION="4.0.1_0015.0642"
-COOR_MD5SUM="c510d09ae84500ae87602c42af22acef"
-KERNEL_MD5SUM="908a3c012aa40e9a215f6d3b38cb80c6"
-ROOTFS_MD5SUM="df1d94a1c3bec74fb8c092a3554cb406"
-MODIFIED_ROOTFS_MD5SUM="62fba5f35d9647c35ae2bc858bf7c819"
+VERSION="4.0.2_0010.0644"
+COOR_MD5SUM="d65dcc9dd8255f9b78aaf69c5e9734f7"
+KERNEL_MD5SUM="c804df81564d1bd1165e2d8121a5eb34"
+ROOTFS_MD5SUM="1f3430020335d72ffea6d8709453c578"
+MODIFIED_ROOTFS_MD5SUM="9c547b72c8063a759fc4ccebf73c76b5"
 BTBL_MD5SUM=""
 BTAPP_MD5SUM=""
 IRCTRL_MD5SUM=""
@@ -194,6 +194,7 @@ usage_updater()
 #       ha_agent         : a
 #       property_service : p
 #       zigbee_agent     : z
+#       ha_matter        : t
 #
 # For example: keep ha_basis and ha_master alive: stop_aiot "b;m"
 #
@@ -201,7 +202,7 @@ stop_aiot()
 {
     local d=0; local m=0; local b=0
     local a=0; local p=0; local z=0
-    local l=0;
+    local l=0; local t=0;
 
     match_substring "$1" "d"; d=$?
     match_substring "$1" "m"; m=$?
@@ -210,8 +211,9 @@ stop_aiot()
     match_substring "$1" "p"; p=$?
     match_substring "$1" "z"; z=$?
     match_substring "$1" "l"; l=$?
+    match_substring "$1" "t"; t=$?
 
-    green_echo "d:$d, m:$m, b:$b, a:$a, p:$p, z:$z, l:$l"
+    green_echo "d:$d, m:$m, b:$b, a:$a, p:$p, z:$z, l:$l, t:$t"
 
     # Stop monitor.
     killall -9 app_monitor.sh
@@ -221,26 +223,28 @@ stop_aiot()
     #
     # Send a signal to programs.
     #
+    if [ $t -eq 0 ]; then killall ha_matter        ;fi
     if [ $d -eq 0 ]; then killall ha_driven        ;fi
     if [ $m -eq 0 ]; then killall ha_master        ;fi
     if [ $b -eq 0 ]; then killall ha_basis         ;fi
     if [ $a -eq 0 ]; then killall ha_agent         ;fi
     if [ $p -eq 0 ]; then killall property_service ;fi
     if [ $z -eq 0 ]; then killall zigbee_agent     ;fi
-    if [ $l -eq 0 ]; then killall ha_ble           ;fi
+    if [ $l -eq 0 ]; then killall ha_lanbox        ;fi
 
     sleep 1
 
     #
     # Force to kill programs.
     #
+    if [ $t -eq 0 ]; then killall -9 ha_matter        ;fi
     if [ $d -eq 0 ]; then killall -9 ha_driven        ;fi
     if [ $m -eq 0 ]; then killall -9 ha_master        ;fi
     if [ $b -eq 0 ]; then killall -9 ha_basis         ;fi
     if [ $a -eq 0 ]; then killall -9 ha_agent         ;fi
     if [ $p -eq 0 ]; then killall -9 property_service ;fi
     if [ $z -eq 0 ]; then killall -9 zigbee_agent     ;fi
-    if [ $l -eq 0 ]; then killall -9 ha_ble           ;fi
+    if [ $l -eq 0 ]; then killall -9 ha_lanbox        ;fi
 }
 
 #
@@ -796,6 +800,9 @@ initial()
     elif [ "$product" = "lumi.gateway.iragl5" ];  then model="AH_M2_BLE"
     elif [ "$product" = "lumi.gateway.iragl6" ];  then model="AH_M2_BLE"
     elif [ "$product" = "lumi.gateway.iragl7" ];  then model="AH_M2_BLE"
+    elif [ "$product" = "lumi.gateway.agl001" ];  then model="AH_M2_BLE"
+    # EigenStone J1
+    elif [ "$product" = "lumi.gateway.eicn02" ];  then model="AH_M1S"
     # End
     fi
 
