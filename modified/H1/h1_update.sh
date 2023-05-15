@@ -31,6 +31,14 @@ OPTIONS="-h;-u;"
 PLATFORMS="-a;-m"
 
 #
+# Updater operations.
+# -s: check sign.
+# -n: ignore sign.
+# -o: original firmware.
+#
+UPDATER="-s;-n;-o"
+
+#
 # Default platform.
 # Must in aiot;miot.
 #
@@ -47,23 +55,24 @@ MODEL_FILE="/data/utils/fw_manager.model"
 # AC_P3 : Air Condition P3.
 # AH_M1S: Aqara Hub M1S.
 # AH_M2 : Aqara Hub M2.
+#
+# note: default is unknow.
+#
+model=""
 
 #
 # Version and md5sum
 #
 FIRMWARE_URL="https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main"
-VERSION="3.5.2_0010.0736"
-COOR_MD5SUM="7a0a2d48131e9ef109a7556aec6a6bcb"
-KERNEL_MD5SUM="87207bb3ec288c5ee5c781dc71798241"
-ROOTFS_MD5SUM="f03368fbabfdefc38b68e146d51f7332"
+VERSION="4.0.1_0020.0744"
+COOR_MD5SUM="28122229e3c7d3f25f62e035907b75f6"
+KERNEL_MD5SUM="e7f24c5c351052f1e9934c7ae9853dd2"
+ROOTFS_MD5SUM="d7a165b29ad54e43c46fbf61f5bb965a"
+MODIFIED_ROOTFS_MD5SUM="8d817481c697133d1f4f2db291f68b0e"
 BTBL_MD5SUM=""
 BTAPP_MD5SUM=""
 IRCTRL_MD5SUM=""
 
-#
-# note: default is unknow.
-#
-model=""
 ble_support=""
 UPDATE_BT=0
 
@@ -73,6 +82,8 @@ zbcoor_bin_="$ota_dir_/ControlBridge.bin"
 irctrl_bin_="$ota_dir_/IRController.bin"
 ble_bl_bin_="$ota_dir_/bootloader.gbl"
 ble_app_bin_="$ota_dir_/full.gbl"
+
+FW_TYPE=1
 
 #
 # Enable debug, 0/1.
@@ -166,6 +177,8 @@ usage_updater()
     green_echo "Usage: h1_update.sh -u [$UPDATER] [path]."
     green_echo " -s : check md5sum."
     green_echo " -n : don't check md5sum."
+    green_echo " -m : modified firmware."
+    green_echo " -o : original firmware."
 }
 
 #
@@ -179,6 +192,7 @@ usage_updater()
 #       ha_agent         : a
 #       property_service : p
 #       zigbee_agent     : z
+#       ha_matter        : t
 #
 # For example: keep ha_basis and ha_master alive: stop_aiot "b;m"
 #
@@ -186,7 +200,7 @@ stop_aiot()
 {
     local d=0; local m=0; local b=0
     local a=0; local p=0; local z=0
-    local l=0
+    local l=0; local t=0;
 
     match_substring "$1" "d"; d=$?
     match_substring "$1" "m"; m=$?
@@ -195,8 +209,9 @@ stop_aiot()
     match_substring "$1" "p"; p=$?
     match_substring "$1" "z"; z=$?
     match_substring "$1" "l"; l=$?
+    match_substring "$1" "t"; t=$?
 
-    green_echo "d:$d, m:$m, b:$b, a:$a, p:$p, z:$z, l:$l"
+    green_echo "d:$d, m:$m, b:$b, a:$a, p:$p, z:$z, l:$l, t:$t"
 
     # Stop monitor.
     killall -9 app_monitor.sh
@@ -204,6 +219,7 @@ stop_aiot()
     #
     # Send a signal to programs.
     #
+    if [ $t -eq 0 ]; then killall ha_matter        ;fi
     if [ $d -eq 0 ]; then killall ha_driven        ;fi
     if [ $m -eq 0 ]; then killall ha_master        ;fi
     if [ $b -eq 0 ]; then killall ha_basis         ;fi
@@ -217,6 +233,7 @@ stop_aiot()
     #
     # Force to kill programs.
     #
+    if [ $t -eq 0 ]; then killall -9 ha_matter        ;fi
     if [ $d -eq 0 ]; then killall -9 ha_driven        ;fi
     if [ $m -eq 0 ]; then killall -9 ha_master        ;fi
     if [ $b -eq 0 ]; then killall -9 ha_basis         ;fi
@@ -246,6 +263,7 @@ stop_miot()
 {
     local b=0; local m=0; local h=0; local g=0
     local c=0; local z=0; local a=0; local p=0
+    local l=0;
 
     match_substring "$1" "b"; b=$?
     match_substring "$1" "m"; m=$?
@@ -397,7 +415,7 @@ update_prepare()
     return 0
 }
 
-update_getpack()
+update_get_packages()
 {
     local platform="$1"
     local simple_model=""
@@ -412,6 +430,7 @@ update_getpack()
     elif [ "$model" = "AH_M2_BLE" ]; then simple_model="M2"
     # Aqara Hub H1.
     elif [ "$model" = "AH_BOX" ];  then simple_model="H1"
+    elif [ "$model" = "AH_H1" ];  then simple_model="H1"
     # End
     fi
 
@@ -420,28 +439,46 @@ update_getpack()
         return 1
     fi
 
+    echo "Update to ${VERSION}"
     echo "Get packages, please wait..."
     if [ "x${simple_model}" == "xP3" ]; then
-        /tmp/curl -s -k -L -o /tmp/IRController.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/IRController.bin
-        [ "$(md5sum /tmp/IRController.bin)" != "${IRCTRL_MD5SUM}  /tmp/IRController.bin" ] && return 1
+        if [ "x${IRCTRL_MD5SUM}" != "x" ]; then
+            /tmp/curl -s -k -L -o /tmp/IRController.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/IRController.bin
+            [ "$(md5sum /tmp/IRController.bin)" != "${IRCTRL_MD5SUM}  /tmp/IRController.bin" ] && return 1
+        fi
     fi
 
-    if [ "x${UPDATE_BT}" == "x1" ]; then
+    if [ "x${BTBL_MD5SUM}" != "x" ]; then
         /tmp/curl -s -k -L -o /tmp/bootloader.gbl ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/bootloader.gbl
         [ "$(md5sum /tmp/bootloader.gbl)" != "${BTBL_MD5SUM}  /tmp/bootloader.gbl" ] && return 1
+    fi
 
+    if [ "x${BTAPP_MD5SUM}" != "x" ]; then
         /tmp/curl -s -k -L -o /tmp/full.gbl ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/full.gbl
         [ "$(md5sum /tmp/full.gbl)" != "${BTAPP_MD5SUM}  /tmp/full.gbl" ] && return 1
     fi
 
-    /tmp/curl -s -k -L -o /tmp/ControlBridge.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/ControlBridge.bin
-    [ "$(md5sum /tmp/ControlBridge.bin)" != "${COOR_MD5SUM}  /tmp/ControlBridge.bin" ] && return 1
+    if [ "x${COOR_MD5SUM}" != "x" ]; then
+        /tmp/curl -s -k -L -o /tmp/ControlBridge.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/ControlBridge.bin
+        [ "$(md5sum /tmp/ControlBridge.bin)" != "${COOR_MD5SUM}  /tmp/ControlBridge.bin" ] && return 1
+    fi
 
-    /tmp/curl -s -k -L -o /tmp/linux.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/linux_${VERSION}.bin
-    [ "$(md5sum /tmp/linux.bin)" != "${KERNEL_MD5SUM}  /tmp/linux.bin" ] && return 1
+    if [ "x${KERNEL_MD5SUM}" != "x" ]; then
+        /tmp/curl -s -k -L -o /tmp/linux.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/linux_${VERSION}.bin
+        [ "$(md5sum /tmp/linux.bin)" != "${KERNEL_MD5SUM}  /tmp/linux.bin" ] && return 1
+    fi
 
-    /tmp/curl -s -k -L -o /tmp/rootfs.bin ${FIRMWARE_URL}/modified/${simple_model}/${VERSION}/rootfs_${VERSION}_modified.bin
-    [ "$(md5sum /tmp/rootfs.bin)" != "${ROOTFS_MD5SUM}  /tmp/rootfs.bin" ] && return 1
+    if [ "$FW_TYPE" == "0" ]; then
+        if [ "x${ROOTFS_MD5SUM}" != "x" ]; then
+            /tmp/curl -s -k -L -o /tmp/rootfs.bin ${FIRMWARE_URL}/original/${simple_model}/${VERSION}/root_${VERSION}.bin
+            [ "$(md5sum /tmp/rootfs.bin)" != "${ROOTFS_MD5SUM}  /tmp/rootfs.bin" ] && return 1
+        fi
+    else
+        if [ "x${MODIFIED_ROOTFS_MD5SUM}" != "x" ]; then
+            /tmp/curl -s -k -L -o /tmp/rootfs.bin ${FIRMWARE_URL}/modified/${simple_model}/${VERSION}/rootfs_${VERSION}_modified.bin
+            [ "$(md5sum /tmp/rootfs.bin)" != "${MODIFIED_ROOTFS_MD5SUM}  /tmp/rootfs.bin" ] && return 1
+        fi
+    fi
 
     echo "Got packages done"
     return 0
@@ -630,7 +667,6 @@ update_failed()
 update_done()
 {
     update_clean
-    setprop sys.dfu_progress 100
     sleep 1
     sync
     sleep 6
@@ -667,7 +703,11 @@ updater()
     if [ ! -e "/tmp/curl" ]; then update_failed "$platform" "/tmp/curl not found!"; return 1; fi
 
     # Need check sign?
-    if [ "$2" = "-s" ]; then sign="1"; fi
+    if [ "$1" = "-s" ]; then sign="1"; fi
+
+    # original or modified firmware?
+    if [ "$1" = "-o" ]; then FW_TYPE="0"; fi
+    if [ "$1" = "-m" ]; then FW_TYPE="1"; fi
 
     local platform=`getprop persist.sys.cloud`
     if [ "$platform" = "" ]; then platform=$DEFAULT_PLATFORM; fi
@@ -682,7 +722,7 @@ updater()
     fi
 
     # Get DFU package and check it.
-    update_getpack "$platform" "$path" "$sign"
+    update_get_packages "$platform" "$path" "$sign"
     if [ $? -ne 0 ]; then
         update_failed "$platform" "getpack failed!" "true"
         return 1
@@ -762,7 +802,7 @@ initial()
     green_echo "type: $product, model: $model"
 
     if [ "$product" != "lumi.gateway.sacn01" ]; then
-        echo "This is not supported H1 and exit!"
+        red_echo "This is not supported H1 and exit!"
         exit 1
     fi
 }
