@@ -808,7 +808,7 @@ initial()
 
     green_echo "type: $product, model: $model"
 
-    if [ "$product" != "lumi.gateway.iragl5" ]; then
+    if [ "$product" != "lumi.gateway.iragl5" ] && [ "$product" != "lumi.gateway.agl001" ]; then
         red_echo "This is not supported M2 and exit!"
         exit 1
     fi
