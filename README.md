@@ -16,17 +16,17 @@ The repository includes the following feature.
 - minidlnad (copy minidland to /data/bin and copy minidland.conf to /data/etc)
 - post_init.sh (*for M2 above 3.0.7_0008_0515, you can copy to /data/scripts/post_init.sh before upgrade 3.0.7_0008_0515, it will enable tty and telnetd without modified rootfs*)
 
-1. raw firmware
+2. raw firmware
 
     If using dd or bootloader to flash, need to use raw file with padded (boundary 0x20000).
 
-2. modified firmware
+3. modified firmware
 
     a. The modified firmwares was enabled tty rx and telnetd.
 
     b. Can use fw_update to update.
 
-3. original firmware
+4. original firmware
 
 - Roll back to original firmware or upgrade firmware by fw_update.
 ```
@@ -36,20 +36,23 @@ fw_update linux.bin
 ```
 run_ble_dfu.sh /dev/ttyS1 full_125.gbl 125 1
 ```
-4. update zigbee firmware
+5. update zigbee firmware
 ```
 zigbee_msnger zgb_ota /tmp/ota_dir/ControlBridge.bin
 ```
-5. stock firmware
+6. stock firmware
 
-6. tools
+7. tools
 
    The aqaragateway tool can help user to flash firmware by xmodem. The UART TTL need to wired out and connected with PC.
    While wired out the UART of M1S, please use power board to provide 3.3V and 5V. Otherwise Gateway M1S will not work probably.
-   Notice: Do not use the 3.3 from USBtoUART.
+   Notice: Do not use the 3.3V from USBtoUART.
 
    If flash finish successfully, it will display 'Programming filename.bin_raw Done!'
    <img src="https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/tools/flash_done.png">
+
+   The gw_global_tool.ttl can help user to clear the password of admin in the gateway via UART.
+   Please see the [how-to](https://github.com/niceboygithub/AqaraM1SM2fw/tree/main/tools)
 
 
 <a href="https://www.buymeacoffee.com/niceboygithub" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>

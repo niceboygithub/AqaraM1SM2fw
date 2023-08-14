@@ -1,0 +1,153 @@
+; Xiaomi MultiMode/Aqara M2/M1S/P3 Gteway Global tool
+; This script was reference to https://raw.githubusercontent.com/serrj-sv/lumi.gateway.mgl03/main/uart_recovery/mgl03_uart_recovery.ttl
+;
+
+version='20230814'
+setsync 0
+show -1
+enablekeyb 0
+setspeed 38400
+yesnobox 'Whould you like to try automatic bootloader interrupt?\n                (choose "No" if it fails for you)' 'Bootloader' 1
+if result then
+  messagebox '1. Connect Gateway to UART\n2. Disconnect Gateway from power\n3. Press OK' 'Start' 1
+  showtt -1
+  showtt 1
+  mpause 100
+  dispstr #$1B"[2J" #$1B"[H"
+  dispstr '== Gateway Global Tool version:' version '==' 10 10 13
+  dispstr '   >>Power ON Gateway NOW!<<' 10 10 13
+  mtimeout=1
+  while 1
+    wait 'uart ok'
+    if result break
+  endwhile
+  send 'u'
+  mtimeout=0
+  wait '<RealTek>' 'init IP ok'
+else
+  messagebox '1. Connect Gateway to UART\n2. Disconnect Gateway from power\n3. Press OK' 'Start' 1
+  showtt -1
+  showtt 1
+  mpause 100
+  dispstr #$1B"[2J" #$1B"[H"
+  dispstr '          == Gateway Global Tool version:' version '==' 10 10 13
+  dispstr '>>Press and hold "u" on keyboard and power ON Gateway<<' 10 10 13
+  enablekeyb 1
+  wait '<RealTek>' 'init IP ok'
+  enablekeyb 0
+  if result=1 messagebox 'Release "u" and peress OK to continue' 'Success!'
+endif
+if result=2 then
+ messagebox 'Enter bootloader failed! Switch OFF gateway and run this macro again' 'Fail'
+ end
+endif
+setsync 1
+sendln ''
+wait '<RealTek>'
+sendln 'dbgmsg 3'
+wait '<RealTek>'
+sendln 'ri 0 1 1'
+wait '<RealTek>'
+dispstr #$1B"[2J" #$1B"[H"
+sendln ''
+wait '<RealTek>'
+sendln 'xmrx 80000000'
+strdim msg 4
+msg[0] = 'Xiaomi Multimode Gateway 1'
+msg[1] = 'Aqara Gateway M2 Global/China'
+msg[2] = 'Aqara Gateway M2 Korea'
+msg[3] = 'Other Gateway with SoC RTL8197F'
+listbox 'Please select choose your gateway' 'Confirmation' msg
+gwtype=result
+getdir curdir
+if gwtype=0 then
+  sprintf '%s\flasher_mgl03.bin' curdir inputstr
+elseif gwtype=1 then
+  sprintf '%s\flasher_m2gl.bin' curdir inputstr
+elseif gwtype=2 then
+  sprintf '%s\flasher_m2kor.bin' curdir inputstr
+elseif gwtype=3 then
+  messagebox 'Please choose corresponding flasher (flasher.bin)' 'Flasher'
+  filenamebox 'Choose flasher' 0
+else
+  end
+endif
+xmodemsend inputstr 1
+wait '<RealTek>'
+sendln 'j 80000000'
+wait ''
+clearscreen  1
+wait '<RealTek>'
+dispstr #$1B"[2J" #$1B"[H"
+sendln ''
+wait '<RealTek>'
+sendln 'bootsh'
+wait ''
+wait 'BusyBox v'
+wait '#'
+if gwtype=0 then
+  ;sendln 'kick_wdog_timer &'
+  ;wait '#'
+  sendln 'mount -t ramfs ramfs /var; mkdir /var/tmp'
+  wait '#'
+  sendln 'cp /etc/init.d/rcS /var/tmp/rcS'
+  wait '#'
+  sendln "sed -i 's/startup.sh/echo /g' /var/tmp/rcS"
+  wait '#'
+  sendln '/var/tmp/rcS'
+elseif gwtype=1 then
+  sendln 'mount -t proc proc /proc; mount -t ramfs ramfs /var; mount -t sysfs sysfs /sys; mkdir /var/tmp'
+  wait '#'
+  sendln 'kick_wdog_timer.sh &'
+  wait '#'
+  sendln 'ubifs_mount'
+elseif gwtype=2 then
+  sendln 'mount -t proc proc /proc; mount -t ramfs ramfs /var; mount -t sysfs sysfs /sys; mkdir /var/tmp'
+  wait '#'
+  sendln 'kick_wdog_timer &'
+  wait '#'
+  sendln 'mount -t yaffs2 -o tags-ecc-off -o inband-tags /dev/mtdblock7 /lumi'
+else
+  sendln 'mount -t proc proc /proc; mount -t ramfs ramfs /var; mount -t sysfs sysfs /sys; mkdir /var/tmp'
+  wait '#'
+  sendln 'kick_wdog &'
+  wait '#'
+  sendln 'kick_wdog_timer &'
+  wait '#'
+  sendln 'kick_wdog_timer.sh &'
+endif
+wait '#'
+sendln 'passwd -d admin'
+wait '#'
+if gwtype=0 then
+  sendln 'cat /data/miio/device.token'
+  wait '#'
+  sendln 'cat /data/miio/device.conf'
+elseif gwtype=1 then
+  sendln '[ -d /data/storage ] || mkdir -p /data/storage'
+  wait '#'
+  sendln 'property_service -i /etc/build.prop -p /data/storage/prop.dat -b'
+  wait '#'
+  sendln 'setprop persist.app.tty_enable true'
+  wait '#'
+  sendln 'getprop | grep miio'
+elseif gwtype=2 then
+  sendln 'cat /lumi/miio/device.conf'
+endif
+wait '#'
+if gwtype=1 then
+  message="Gateway clear password complete, and the gateway info is showed, then it will be rebooted!\n If the gateway is CN or new Global version, you can flash modified firmware after reboot to enable telnet."
+else
+  message="Gateway clear password complete, and the gateway info is showed, then it will be rebooted!"
+endif
+messagebox message 'Done'
+sendln 'reboot'
+setspeed 38400
+enablekeyb 1
+setsync 0
+yesnobox 'If this project helped you, you can treat us with a cup of coffee :)' 'Thank you!'
+  if result then
+    exec 'rundll32 url.dll,FileProtocolHandler https://buymeacoff.ee/serrj'
+    exec 'rundll32 url.dll,FileProtocolHandler https://buymeacoff.ee/niceboygithub'
+  end
+; Done
