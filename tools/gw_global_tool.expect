@@ -1,0 +1,250 @@
+#!/usr/bin/expect -f
+
+# Xiaomi MultiMode/Aqara M2/M1S/P3 Gteway Global tool
+# This script was reference to https://raw.githubusercontent.com/serrj-sv/lumi.gateway.mgl03/main/uart_recovery/mgl03_uart_recovery.ttl
+#
+
+set version "20230815"
+
+puts "Xiaomi/Aqara Gateway Global tool script version: $version"
+puts "Requires:"
+puts "  sx (package lrzsz)"
+puts "  stty (package coreutils)"
+
+set ostype 0
+spawn -noecho sh -c "uname"
+expect {
+	"Linux" {set ostype 0}
+	"Darwin" {set ostype 1}
+}
+
+set timeout -1
+match_max 100000
+
+set coffee_url1 "https://buymeacoff.ee/serrj"
+set coffee_url2 "https://buymeacoff.ee/niceboygithub"
+
+puts "\n\nConnect Gateway to UART, disconnect it from power\n"
+
+puts "Please select choose your gateway:"
+puts "\[0\] Xiaomi Multimode Gateway 1"
+puts "\[1\] Aqara Gateway M2 Global/China"
+puts "\[2\] Aqara Gateway M2 Korea"
+puts "\[3\] Other Gateway with SoC RTL8197F"
+set idx 0
+send_user "Choose gateway ($idx): "
+expect_user -re "(.*)\n"
+set gwtype $expect_out(1,string)
+if {$gwtype != ""} {
+	set idx $gwtype
+}
+
+if { $idx == 0} {
+	set flasher_file "[pwd]/flasher_mgl03.bin"
+	puts "\nXiaomi Multimode Gateway 1"
+} elseif { $idx == 1 } {
+	set flasher_file "[pwd]/flasher_m2gl.bin"
+	puts "\nAqara Gateway M2 Global/China"
+} elseif { $idx == 2 } {
+	set flasher_file "[pwd]/flasher_m2kor.bin"
+	puts "\nAqara Gateway M2 Korea"
+} elseif { $idx == 3 } {
+	set flasher_file "[pwd]/flasher.bin"
+	puts "\nOther Gateway with SoC RTL8197F"
+} else {
+	puts "\nFalse : $idx\n"
+	exit
+}
+set gwtype $idx
+
+# serial connection
+if { $ostype == 0} {
+	set files [glob -directory [cd /sys/class/tty/] -tails ttyUSB*]
+} elseif { $ostype == 1 } {
+	set files [glob -directory [cd /dev/] -tails cu.*]
+} else {
+	puts "Unkown OS type!"
+	exit
+}
+
+set tty_dev /dev/ttyUSB0
+puts "Available tty:"
+set idx 0
+array set tty_devs {}
+foreach x $files {
+	puts "\[$idx\] $x"
+	append tty_devs($idx) $x
+	incr idx
+}
+if {$idx == 0} {
+	puts "There is no serial device(tty USB)!"
+	exit
+}
+set n_tty_devs $idx
+set idx 0
+send_user "\nEnter serial device ($idx): "
+expect_user -re "(.*)\n"
+set test $expect_out(1,string)
+if {$test != ""} {
+	set idx $test
+}
+if {$idx >= $n_tty_devs} {
+	puts "Wrong choice!"
+	exit
+}
+set tty_dev "/dev/$tty_devs($idx)"
+
+puts "Connecting to $tty_dev\n"
+set tty_id [open $tty_dev r+]
+
+# serial port parameters
+if { $ostype == 0} {
+	exec stty -F $tty_dev 38400 raw -ixon -crtscts -echo -istrip -hup
+} elseif { $ostype == 1 } {
+	exec stty -f $tty_dev 38400 raw -ixon -crtscts -echo -istrip -hup
+} else {
+	puts "Unkown OS type!"
+	exit
+}
+
+# connect
+spawn -noecho -open $tty_id
+set console $spawn_id
+
+puts "\nPower ON Gateway NOW!"
+
+expect {
+    "uart ok" {
+	send -- "u"
+    }
+    "Enter ROM console" {
+        puts "Connected to correct flahser!"
+	}
+	"load img ok" {
+		puts "Connected to wrong flahser!"
+		exit
+	}
+	timeout {
+		puts "Tiemout!"
+		exit
+	}
+}
+expect "<RealTek>"
+set timeout -1
+send "dbgmsg 3\r"
+expect "<RealTek>"
+send "ri 0 1 1\r"
+expect "<RealTek>"
+puts ""
+
+spawn -noecho sh -c "sx -vv -X -b $flasher_file < $tty_dev > $tty_dev"
+set xmodem $spawn_id
+expect -i $xmodem "Give your local XMODEM receive command now"
+send -i $console "xmrx 80000000\r"
+expect -i $xmodem "Transfer complete"
+set spawn_id $console
+
+send "\r"
+expect "<RealTek>"
+
+send "j 80000000\r"
+expect "Jump to 0x80000000"
+exec stty -F $tty_dev 38400
+
+send "\r"
+expect "<RealTek>"
+
+# boot
+send "bootsh\r"
+expect "BusyBox v"
+expect "#"
+
+if { $gwtype == 0} {
+	send "mount -t ramfs ramfs /var; mkdir /var/tmp\r"
+	expect "#"
+	send "cp /etc/init.d/rcS /var/tmp/rcS\r"
+	expect "#"
+	send "sed -i 's/startup.sh/echo /g' /var/tmp/rcS\r"
+	expect "#"
+	send "/var/tmp/rcS\r"
+} elseif { $gwtype == 1 } {
+	send "mount -t proc proc /proc; mount -t ramfs ramfs /var; mount -t sysfs sysfs /sys; mkdir /var/tmp\r"
+	expect "#"
+	send "kick_wdog_timer.sh &\r"
+	expect "#"
+	send 'ubifs_mount'
+} elseif { $gwtype == 2 } {
+	send "mount -t proc proc /proc; mount -t ramfs ramfs /var; mount -t sysfs sysfs /sys; mkdir /var/tmp\r"
+	expect "#"
+	send "kick_wdog_timer &\r"
+	expect "#"
+	send "mount -t yaffs2 -o tags-ecc-off -o inband-tags /dev/mtdblock7 /lumi\r"
+} elseif { $gwtype == 3 } {
+	send "mount -t proc proc /proc; mount -t ramfs ramfs /var; mount -t sysfs sysfs /sys; mkdir /var/tmp\r"
+	expect "#"
+	send "kick_wdog &\r"
+	expect "#"
+	send "kick_wdog_timer &\r"
+	expect "#"
+	send "kick_wdog_timer.sh &\r"
+} else {
+	exit
+}
+expect "#"
+send "passwd -d admin\r"
+expect "#"
+if { $gwtype == 0} {
+	puts "\n\nGateway token in ASCII (use xxd -p to convert to 32 characters hexadecimal string):"
+	send "cat /data/miio/device.token\r"
+	expect "#"
+	puts "\nGateway Info:"
+	send "cat /data/miio/device.conf\r"
+} elseif { $gwtype == 1 } {
+	send "[ -d /data/storage ] || mkdir -p /data/storage\r"
+	expect "#"
+	send "property_service -i /etc/build.prop -p /data/storage/prop.dat -b\r"
+	expect "#"
+	send "setprop persist.app.tty_enable truer\r"
+	expect "#"
+	puts "\nGateway Info:"
+	send "getprop | grep miio\r"
+} elseif { $gwtype == 2 } {
+	send "cat /lumi/miio/device.conf\r"
+}
+expect "#"
+
+send "reboot\r"
+close $console
+
+if { $gwtype == 1} {
+	puts "\nGateway clear password complete, and the gateway info is showed, then it will be rebooted!\n If the gateway is CN or new Global version, you can flash modified firmware after reboot to enable telnet."
+
+	send_user "\nWould you like to flash M2 modified firmware? (y/N): "
+	expect_user -re "(.*)\n"
+	set test $expect_out(1,string)
+	if {$test == "y"} {
+		puts "1. Connect Gateway to ethernet\n2. Make sure that gateway connect to internet (access to github)"
+		send 'ifconfig eth0 up'
+		expect '#'
+		send 'ifconfig lo up'
+		expect '#'
+		send 'udhcpc -i eth0'
+		expect '#'
+		send 'cd /tmp && wget -O /tmp/curl "http://master.dl.sourceforge.net/project/mgl03/bin/curl?viasf=1" && chmod a+x /tmp/curl'
+		expect '#'
+		send '/tmp/curl -s -k -L -o /tmp/m2_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/M2/m2_update.sh'
+		expect '#'
+		send 'chmod a+x /tmp/m2_update.sh && /tmp/m2_update.sh'
+		expect '#'
+	}
+} else {
+	puts "\nGateway clear password complete, and the gateway info is showed, then it will be rebooted!"
+}
+
+send_user "\nIf this project helped you, you can treat me with a cup of coffee :)\nOpen url $coffee_url1 (y/N): "
+expect_user -re "(.*)\n"
+set test $expect_out(1,string)
+if {$test == "y"} {
+	exec xdg-open $coffee_url1
+	exec xdg-open $coffee_url2
+}

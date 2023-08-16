@@ -2,12 +2,13 @@
 ; This script was reference to https://raw.githubusercontent.com/serrj-sv/lumi.gateway.mgl03/main/uart_recovery/mgl03_uart_recovery.ttl
 ;
 
-version='20230814'
+version='20230815'
 setsync 0
 show -1
 enablekeyb 0
 setspeed 38400
-yesnobox 'Whould you like to try automatic bootloader interrupt?\n                (choose "No" if it fails for you)' 'Bootloader' 1
+
+yesnobox 'Would you like to try automatic bootloader interrupt?\n                (choose "No" if it fails for you)' 'Bootloader' 1
 if result then
   messagebox '1. Connect Gateway to UART\n2. Disconnect Gateway from power\n3. Press OK' 'Start' 1
   showtt -1
@@ -120,9 +121,13 @@ wait '#'
 sendln 'passwd -d admin'
 wait '#'
 if gwtype=0 then
+  sendln 'echo \n\nGateway token in ASCII (use xxd -p to convert to 32 characters hexadecimal string):'
   sendln 'cat /data/miio/device.token'
   wait '#'
+  sendln 'echo \nGateway Info:'
   sendln 'cat /data/miio/device.conf'
+  waitln 'model='
+  model=inputstr
 elseif gwtype=1 then
   sendln '[ -d /data/storage ] || mkdir -p /data/storage'
   wait '#'
@@ -131,15 +136,73 @@ elseif gwtype=1 then
   sendln 'setprop persist.app.tty_enable true'
   wait '#'
   sendln 'getprop | grep miio'
+  wait '#'
+  sendln 'getprop persist.sys.model'
+  waitln 'lumi.'
+  model=inputstr
 elseif gwtype=2 then
   sendln 'cat /lumi/miio/device.conf'
 endif
 wait '#'
 if gwtype=1 then
   message="Gateway clear password complete, and the gateway info is showed, then it will be rebooted!\n If the gateway is CN or new Global version, you can flash modified firmware after reboot to enable telnet."
+
+  yesnobox 'Would you like to flash M2 modified firmware?' 'flasher' 1
+  if result then
+    modelname=0
+    strcompare model 'lumi.gateway.acn01'
+    if result=0 modelname=1 ; m1s
+    strcompare model 'lumi.aircondition.acn05'
+    if result=0 modelname=2 ; p3
+    strcompare model 'lumi.gateway.iragl5'
+    if result=0 modelname=3 ; m2
+    strcompare model 'lumi.gateway.agl001'
+    if result=0 modelname=3 ; m2
+    strcompare model 'lumi.gateway.sacn01'
+    if result=0 modelname=4 ; h1
+
+    messagebox '1. Connect Gateway to ethernet\n2. Make sure that gateway connect to internet (access to github)\n3. Press OK' 'Start' 1
+    sendln 'ifconfig lo up'
+    wait '#'
+    strcompare model 'lumi.gateway.iragl5'
+    if modelname=3 then
+      sendln 'ifconfig eth0 up'
+      wait '#'
+      sendln 'udhcpc -i eth0'
+      wait '#'
+    else
+      sendln 'ifconfig wlan0 up'
+      wait '#'
+      sendln '/usr/factory_test/bin/wifi_test_station.sh $(getprop persist.app.wifi_ssid) $(getprop persist.app.wifi_passphrase)'
+      wait '#'
+    endif
+    sendln 'cd /tmp && wget -O /tmp/curl "http://master.dl.sourceforge.net/project/mgl03/bin/curl?viasf=1" && chmod a+x /tmp/curl'
+    wait '#'
+    if modelname=1 then
+      sendln '/tmp/curl -s -k -L -o /tmp/m1s_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/M1S/m1s_update.sh'
+      wait '#'
+      sendln 'chmod a+x /tmp/m1s_update.sh && /tmp/m1s_update.sh'
+    elseif modelname=2 then
+      sendln '/tmp/curl -s -k -L -o /tmp/p3_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/P3/p3_update.sh'
+      wait '#'
+      sendln 'chmod a+x /tmp/p3_update.sh && /tmp/p3_update.sh'
+    elseif modelname=3 then
+      sendln '/tmp/curl -s -k -L -o /tmp/m2_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/M2/m2_update.sh'
+      wait '#'
+      sendln 'chmod a+x /tmp/m2_update.sh && /tmp/m2_update.sh'
+    elseif modelname=4 then
+      sendln '/tmp/curl -s -k -L -o /tmp/h1_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/H1/h1_update.sh'
+      wait '#'
+      sendln 'chmod a+x /tmp/h1_update.sh && /tmp/h1_update.sh'
+    else
+      messagebox 'Unknwn supported gateway' 'Error'
+    endif
+    wait '#'
+  endif
 else
   message="Gateway clear password complete, and the gateway info is showed, then it will be rebooted!"
 endif
+
 messagebox message 'Done'
 sendln 'reboot'
 setspeed 38400
