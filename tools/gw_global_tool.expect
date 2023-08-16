@@ -137,7 +137,11 @@ send "ri 0 1 1\r"
 expect "<RealTek>"
 puts ""
 
-spawn -noecho sh -c "sx -vv -X -b $flasher_file < $tty_dev > $tty_dev"
+if { $ostype == 0} {
+	spawn -noecho sh -c "sx -vv -X -b $flasher_file < $tty_dev > $tty_dev"
+} elseif { $ostype == 1 } {
+	spawn -noecho sh -c "lsx -vv -X -b $flasher_file < $tty_dev > $tty_dev"
+}
 set xmodem $spawn_id
 expect -i $xmodem "Give your local XMODEM receive command now"
 send -i $console "xmrx 80000000\r"
@@ -149,7 +153,11 @@ expect "<RealTek>"
 
 send "j 80000000\r"
 expect "Jump to 0x80000000"
-exec stty -F $tty_dev 38400
+if { $ostype == 0} {
+	exec stty -F $tty_dev 38400
+} elseif { $ostype == 1 } {
+	exec stty -f $tty_dev 38400
+}
 
 send "\r"
 expect "<RealTek>"
@@ -209,7 +217,7 @@ if { $gwtype == 0} {
 	puts "\nGateway Info:"
 	send "getprop | grep miio\r"
 } elseif { $gwtype == 2 } {
-	send "cat /lumi/miio/device.conf\r"
+	send "cat /lumi/app/gw/conf/device.conf\r"
 }
 expect "#"
 
@@ -245,6 +253,11 @@ send_user "\nIf this project helped you, you can treat me with a cup of coffee :
 expect_user -re "(.*)\n"
 set test $expect_out(1,string)
 if {$test == "y"} {
-	exec xdg-open $coffee_url1
-	exec xdg-open $coffee_url2
+	if { $ostype == 0} {
+		exec xdg-open $coffee_url1
+		exec xdg-open $coffee_url2
+	} elseif { $ostype == 1 } {
+		exec open $coffee_url1
+		exec open $coffee_url2
+	}
 }

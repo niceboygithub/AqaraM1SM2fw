@@ -141,7 +141,7 @@ elseif gwtype=1 then
   waitln 'lumi.'
   model=inputstr
 elseif gwtype=2 then
-  sendln 'cat /lumi/miio/device.conf'
+  sendln 'cat /lumi/app/gw/conf/device.conf'
 endif
 wait '#'
 if gwtype=1 then

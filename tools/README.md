@@ -15,11 +15,11 @@
 1. Open gw_global_tool.ttl file you downloaded in step [1]
 1. Follow on-screen instructions
 
-### Linux
+### Linux/MacOS
 1. Download [gw_global_tool.expect](https://github.com/niceboygithub/AqaraM1SM2fw/blob/main/tools/gw_global_tool.expect)
-1. make sure following programs are installed:
+1. make sure following programs are installed (If MacOS, use brew to install):
   * expect
-  * sx (from package lrzsz)
+  * sx/lsx (from package lrzsz)
   * stty
 1. make sure that flasher (flasher*.bin) are in the same folder
 1. make sure you're in "dialout" group
