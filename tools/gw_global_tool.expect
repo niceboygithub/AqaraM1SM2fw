@@ -180,6 +180,8 @@ if { $gwtype == 0} {
 	expect "#"
 	send "kick_wdog_timer.sh &\r"
 	expect "#"
+	send "kick_wdog &\r"
+	expect "#"
 	send 'ubifs_mount'
 } elseif { $gwtype == 2 } {
 	send "mount -t proc proc /proc; mount -t ramfs ramfs /var; mount -t sysfs sysfs /sys; mkdir /var/tmp\r"

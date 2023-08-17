@@ -101,6 +101,8 @@ elseif gwtype=1 then
   wait '#'
   sendln 'kick_wdog_timer.sh &'
   wait '#'
+  sendln 'kick_wdog &'
+  wait '#'
   sendln 'ubifs_mount'
 elseif gwtype=2 then
   sendln 'mount -t proc proc /proc; mount -t ramfs ramfs /var; mount -t sysfs sysfs /sys; mkdir /var/tmp'
