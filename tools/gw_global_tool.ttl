@@ -2,12 +2,19 @@
 ; This script was reference to https://raw.githubusercontent.com/serrj-sv/lumi.gateway.mgl03/main/uart_recovery/mgl03_uart_recovery.ttl
 ;
 
-version='20230815'
+version='20230821'
 setsync 0
 show -1
 enablekeyb 0
 setspeed 38400
 
+strdim msg 4
+msg[0] = 'Xiaomi Multimode Gateway 1'
+msg[1] = 'Aqara Gateway M2 old Global/China, M1S, H1, P3'
+msg[2] = 'Aqara Gateway M2 Korea'
+msg[3] = 'Other Gateway with SoC RTL8197F'
+listbox 'Please select choose your gateway' 'Confirmation' msg
+gwtype=result
 yesnobox 'Would you like to try automatic bootloader interrupt?\n                (choose "No" if it fails for you)' 'Bootloader' 1
 if result then
   messagebox '1. Connect Gateway to UART\n2. Disconnect Gateway from power\n3. Press OK' 'Start' 1
@@ -53,13 +60,6 @@ dispstr #$1B"[2J" #$1B"[H"
 sendln ''
 wait '<RealTek>'
 sendln 'xmrx 80000000'
-strdim msg 4
-msg[0] = 'Xiaomi Multimode Gateway 1'
-msg[1] = 'Aqara Gateway M2 Global/China'
-msg[2] = 'Aqara Gateway M2 Korea'
-msg[3] = 'Other Gateway with SoC RTL8197F'
-listbox 'Please select choose your gateway' 'Confirmation' msg
-gwtype=result
 getdir curdir
 if gwtype=0 then
   sprintf '%s\flasher_mgl03.bin' curdir inputstr
@@ -82,13 +82,12 @@ wait '<RealTek>'
 dispstr #$1B"[2J" #$1B"[H"
 sendln ''
 wait '<RealTek>'
+dispstr 'If it got "Uncompressing Linux...LZMA: Decoding error", please try restart the gateway and try again.\n'
 sendln 'bootsh'
 wait ''
 wait 'BusyBox v'
 wait '#'
 if gwtype=0 then
-  ;sendln 'kick_wdog_timer &'
-  ;wait '#'
   sendln 'mount -t ramfs ramfs /var; mkdir /var/tmp'
   wait '#'
   sendln 'cp /etc/init.d/rcS /var/tmp/rcS'
@@ -97,13 +96,13 @@ if gwtype=0 then
   wait '#'
   sendln '/var/tmp/rcS'
 elseif gwtype=1 then
-  sendln 'mount -t proc proc /proc; mount -t ramfs ramfs /var; mount -t sysfs sysfs /sys; mkdir /var/tmp'
+  sendln 'mount -t ramfs ramfs /var; mkdir /var/tmp'
   wait '#'
-  sendln 'kick_wdog_timer.sh &'
+  sendln 'cp /etc/init.d/rcS /var/tmp/rcS'
   wait '#'
-  sendln 'kick_wdog &'
+  sendln "sed -i 's/fw_manager.sh -r/echo skip/g' /var/tmp/rcS"
   wait '#'
-  sendln 'ubifs_mount'
+  sendln '/var/tmp/rcS'
 elseif gwtype=2 then
   sendln 'mount -t proc proc /proc; mount -t ramfs ramfs /var; mount -t sysfs sysfs /sys; mkdir /var/tmp'
   wait '#'
@@ -131,10 +130,6 @@ if gwtype=0 then
   waitln 'model='
   model=inputstr
 elseif gwtype=1 then
-  sendln '[ -d /data/storage ] || mkdir -p /data/storage'
-  wait '#'
-  sendln 'property_service -i /etc/build.prop -p /data/storage/prop.dat -b'
-  wait '#'
   sendln 'setprop persist.app.tty_enable true'
   wait '#'
   sendln 'getprop | grep miio'
@@ -147,7 +142,7 @@ elseif gwtype=2 then
 endif
 wait '#'
 if gwtype=1 then
-  message="Gateway clear password complete, and the gateway info is showed, then it will be rebooted!\n If the gateway is CN or new Global version, you can flash modified firmware after reboot to enable telnet."
+  message="Gateway clear password complete, and the gateway info is showed, then it will be rebooted! \n If the gateway is CN or new Global version, you can flash modified firmware after reboot to enable telnet."
 
   yesnobox 'Would you like to flash M2 modified firmware?' 'flasher' 1
   if result then
@@ -163,21 +158,10 @@ if gwtype=1 then
     strcompare model 'lumi.gateway.sacn01'
     if result=0 modelname=4 ; h1
 
-    messagebox '1. Connect Gateway to ethernet\n2. Make sure that gateway connect to internet (access to github)\n3. Press OK' 'Start' 1
-    sendln 'ifconfig lo up'
+    messagebox '1. Connect Gateway to ethernet \n2. Make sure that gateway connect to internet (access to github) \n3.While flashing firmware, PLEASE donot disconnect the power. \n4. Press OK' 'Start' 1
+    sendln 'fw_manager.sh -r'
     wait '#'
-    strcompare model 'lumi.gateway.iragl5'
-    if modelname=3 then
-      sendln 'ifconfig eth0 up'
-      wait '#'
-      sendln 'udhcpc -i eth0'
-      wait '#'
-    else
-      sendln 'ifconfig wlan0 up'
-      wait '#'
-      sendln '/usr/factory_test/bin/wifi_test_station.sh $(getprop persist.app.wifi_ssid) $(getprop persist.app.wifi_passphrase)'
-      wait '#'
-    endif
+    wait 'mDNSResponder'
     sendln 'cd /tmp && wget -O /tmp/curl "http://master.dl.sourceforge.net/project/mgl03/bin/curl?viasf=1" && chmod a+x /tmp/curl'
     wait '#'
     if modelname=1 then
@@ -197,7 +181,7 @@ if gwtype=1 then
       wait '#'
       sendln 'chmod a+x /tmp/h1_update.sh && /tmp/h1_update.sh'
     else
-      messagebox 'Unknwn supported gateway' 'Error'
+      messagebox 'Unkown supported gateway' 'Error'
     endif
     wait '#'
   endif
@@ -205,7 +189,10 @@ else
   message="Gateway clear password complete, and the gateway info is showed, then it will be rebooted!"
 endif
 
-messagebox message 'Done'
+messagebox message 'Done' 1
+showtt -1
+showtt 1
+mpause 100
 sendln 'reboot'
 setspeed 38400
 enablekeyb 1

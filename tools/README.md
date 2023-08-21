@@ -17,18 +17,24 @@
 
 ### Linux/MacOS
 1. Download [gw_global_tool.expect](https://github.com/niceboygithub/AqaraM1SM2fw/blob/main/tools/gw_global_tool.expect)
-1. make sure following programs are installed (If MacOS, use brew to install):
+2. make sure following programs are installed (If MacOS, use brew to install):
+```
   * expect
   * sx/lsx (from package lrzsz)
   * stty
-1. make sure that flasher (flasher*.bin) are in the same folder
-1. make sure you're in "dialout" group
-1. run:
-   ```
+```
+3. make sure that flasher (flasher*.bin) are in the same folder
+4. make sure you're in "dialout" group
+5. run:
+```
    chmod +x gw_global_tool.expect
    ./gw_global_tool.expect
-   ```
-1. follow on-screen instructions
+```
+6. follow on-screen instructions
+
+#### TroubleShooting
+1. You can reference to [this](https://github.com/serrj-sv/lumi.gateway.mgl03/tree/main/uart_recovery#troubleshooting)
+2. If you see the error log "Uncompressing Linux...LZMA: Decoding error", try to normal boot and try again.
 
 
 <a href="https://www.buymeacoffee.com/niceboygithub" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
