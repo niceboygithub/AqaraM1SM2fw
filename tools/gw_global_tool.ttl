@@ -160,8 +160,9 @@ if gwtype=1 then
 
     messagebox '1. Connect Gateway to ethernet \n2. Make sure that gateway connect to internet (access to github) \n3.While flashing firmware, PLEASE donot disconnect the power. \n4. Press OK' 'Start' 1
     sendln 'fw_manager.sh -r'
-    wait '#'
-    wait 'mDNSResponder'
+    mtimeout=10
+    wait 'mDNSResponder' '#'
+    mtimeout=0
     sendln 'cd /tmp && wget -O /tmp/curl "http://master.dl.sourceforge.net/project/mgl03/bin/curl?viasf=1" && chmod a+x /tmp/curl'
     wait '#'
     if modelname=1 then

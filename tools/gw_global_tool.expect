@@ -249,8 +249,10 @@ if { $gwtype == 1} {
 	if {$test == "y"} {
 		puts "1. Connect Gateway to ethernet \n2. Make sure that gateway connect to internet (access to github) \n3.While flashing firmware, PLEASE donot disconnect the power"
 		send "fw_manager.sh -r\r"
-		expect "#"
+		set timeout 10
 		expect "mDNSResponder"
+		expect "#"
+		set timeout -1
 		send "cd /tmp && wget -O /tmp/curl "http://master.dl.sourceforge.net/project/mgl03/bin/curl?viasf=1" && chmod a+x /tmp/curl\r"
 		expect "#"
 		if { $modelname == 1} {
