@@ -6,6 +6,13 @@
 
 set version "20230821"
 
+set inputgw [lindex $argv 0]
+set inputtty [lindex $argv 1]
+
+send -- "$inputgw\r"
+send -- "$inputtty\r"
+puts "$inputgw $inputtty"
+
 puts "Xiaomi/Aqara Gateway Global tool script version: $version"
 puts "Requires:"
 puts "  sx (package lrzsz)"
@@ -26,20 +33,24 @@ set coffee_url2 "https://buymeacoff.ee/niceboygithub"
 
 puts "\n\nConnect Gateway to UART, disconnect it from power\n"
 
-puts "Please select choose your gateway:"
-puts "\[0\] Xiaomi Multimode Gateway 1"
-puts "\[1\] Aqara Gateway M2 old Global/China, M1S, H1, P3"
-puts "\[2\] Aqara Gateway M2 Korea"
-puts "\[3\] Other Gateway with SoC RTL8197F"
-set idx 0
-send_user "Choose gateway ($idx): "
-expect_user -re "(.*)\n"
-set gwtype $expect_out(1,string)
-if {$gwtype != ""} {
-	set idx $gwtype
+if {  $inputgw == 0 || $inputgw == 1 ||  $inputgw == 2 ||  $inputgw == 3 } {
+	set idx $inputgw
+} else {
+	puts "Please select choose your gateway:"
+	puts "\[0\] Xiaomi Multimode Gateway 1"
+	puts "\[1\] Aqara Gateway M2 old Global/China, M1S, H1, P3"
+	puts "\[2\] Aqara Gateway M2 Korea"
+	puts "\[3\] Other Gateway with SoC RTL8197F"
+	set idx 0
+	send_user "Choose gateway ($idx): "
+	expect_user -re "(.*)\n"
+	set gwtype $expect_out(1,string)
+	if {$gwtype != ""} {
+		set idx $gwtype
+	}
 }
 
-if { $idx == 0} {
+if { $idx == 0 } {
 	set flasher_file "[pwd]/flasher_mgl03.bin"
 	puts "\nXiaomi Multimode Gateway 1"
 } elseif { $idx == 1 } {
@@ -57,42 +68,47 @@ if { $idx == 0} {
 }
 set gwtype $idx
 
-# serial connection
-if { $ostype == 0} {
-	set files [glob -directory [cd /sys/class/tty/] -tails ttyUSB*]
-} elseif { $ostype == 1 } {
-	set files [glob -directory [cd /dev/] -tails cu.*]
-} else {
-	puts "Unkown OS type!"
-	exit
-}
+if { $inputtty == "" } {
 
-set tty_dev /dev/ttyUSB0
-puts "Available tty:"
-set idx 0
-array set tty_devs {}
-foreach x $files {
-	puts "\[$idx\] $x"
-	append tty_devs($idx) $x
-	incr idx
+	# serial connection
+	if { $ostype == 0} {
+		set files [glob -directory [cd /sys/class/tty/] -tails ttyUSB*]
+	} elseif { $ostype == 1 } {
+		set files [glob -directory [cd /dev/] -tails cu.*]
+	} else {
+		puts "Unkown OS type!"
+		exit
+	}
+
+	set tty_dev /dev/ttyUSB0
+	puts "Available tty:"
+	set idx 0
+	array set tty_devs {}
+	foreach x $files {
+		puts "\[$idx\] $x"
+		append tty_devs($idx) $x
+		incr idx
+	}
+	if {$idx == 0} {
+		puts "There is no serial device(tty USB)!"
+		exit
+	}
+	set n_tty_devs $idx
+	set idx 0
+	send_user "\nEnter serial device ($idx): "
+	expect_user -re "(.*)\n"
+	set test $expect_out(1,string)
+	if {$test != ""} {
+		set idx $test
+	}
+	if {$idx >= $n_tty_devs} {
+		puts "Wrong choice!"
+		exit
+	}
+	set tty_dev "/dev/$tty_devs($idx)"
+} else {
+	set tty_dev $inputtty
 }
-if {$idx == 0} {
-	puts "There is no serial device(tty USB)!"
-	exit
-}
-set n_tty_devs $idx
-set idx 0
-send_user "\nEnter serial device ($idx): "
-expect_user -re "(.*)\n"
-set test $expect_out(1,string)
-if {$test != ""} {
-	set idx $test
-}
-if {$idx >= $n_tty_devs} {
-	puts "Wrong choice!"
-	exit
-}
-set tty_dev "/dev/$tty_devs($idx)"
 
 puts "Connecting to $tty_dev\n"
 set tty_id [open $tty_dev r+]
@@ -217,7 +233,7 @@ if { $gwtype == 0} {
 	puts "\nGateway Info:"
 	send "getprop | grep miio\r"
 	expect "#"
-	send "getprop persist.sys.model"
+	send "getprop persist.sys.model\r"
 	expect {
 		"lumi.gateway.acn01" {
 			set modelname 1
