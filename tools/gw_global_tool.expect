@@ -4,14 +4,13 @@
 # This script was reference to https://raw.githubusercontent.com/serrj-sv/lumi.gateway.mgl03/main/uart_recovery/mgl03_uart_recovery.ttl
 #
 
-set version "20230821"
+set version "20231017"
 
 set inputgw [lindex $argv 0]
 set inputtty [lindex $argv 1]
 
 send -- "$inputgw\r"
 send -- "$inputtty\r"
-puts "$inputgw $inputtty"
 
 puts "Xiaomi/Aqara Gateway Global tool script version: $version"
 puts "Requires:"
@@ -33,7 +32,7 @@ set coffee_url2 "https://buymeacoff.ee/niceboygithub"
 
 puts "\n\nConnect Gateway to UART, disconnect it from power\n"
 
-if {  $inputgw == 0 || $inputgw == 1 ||  $inputgw == 2 ||  $inputgw == 3 } {
+if {  $inputgw == 0 || $inputgw == 1 || $inputgw == 2 || $inputgw == 3 || $inputgw == 4 || $inputgw == 5 } {
 	set idx $inputgw
 } else {
 	puts "Please select choose your gateway:"
@@ -41,6 +40,8 @@ if {  $inputgw == 0 || $inputgw == 1 ||  $inputgw == 2 ||  $inputgw == 3 } {
 	puts "\[1\] Aqara Gateway M2 old Global/China, M1S, H1, P3"
 	puts "\[2\] Aqara Gateway M2 Korea"
 	puts "\[3\] Other Gateway with SoC RTL8197F"
+	puts "\[4\] Xiaomi Multimode Gateway 2, Hub E1"
+	puts "\[5\] Aqara Smart Switch Panel S1E"
 	set idx 0
 	send_user "Choose gateway ($idx): "
 	expect_user -re "(.*)\n"
@@ -62,6 +63,8 @@ if { $idx == 0 } {
 } elseif { $idx == 3 } {
 	set flasher_file "[pwd]/flasher.bin"
 	puts "\nOther Gateway with SoC RTL8197F"
+} elseif { $idx == 4 || $idx == 5} {
+	puts "\nOther Gateway or device"
 } else {
 	puts "\nFalse : $idx\n"
 	exit
@@ -110,14 +113,19 @@ if { $inputtty == "" } {
 	set tty_dev $inputtty
 }
 
+if { $idx == 4 || $idx == 5} {
+	set tty_baudrate 115200
+} else {
+	set tty_baudrate 38400
+}
 puts "Connecting to $tty_dev\n"
 set tty_id [open $tty_dev r+]
 
 # serial port parameters
 if { $ostype == 0} {
-	exec stty -F $tty_dev 38400 raw -ixon -crtscts -echo -istrip -hup
+	exec stty -F $tty_dev $tty_baudrate raw -ixon -crtscts -echo -istrip -hup
 } elseif { $ostype == 1 } {
-	exec stty -f $tty_dev 38400 raw -ixon -crtscts -echo -istrip -hup
+	exec stty -f $tty_dev $tty_baudrate raw -ixon -crtscts -echo -istrip -hup
 } else {
 	puts "Unkown OS type!"
 	exit
@@ -126,6 +134,7 @@ if { $ostype == 0} {
 # connect
 spawn -noecho -open $tty_id
 set console $spawn_id
+set times 0
 
 puts "\nPower ON Gateway NOW!"
 
@@ -140,49 +149,88 @@ expect {
 		puts "Connected to wrong flahser!"
 		exit
 	}
+	"IPL_CUST" {
+		while { $times < 300 } {
+			set timeout 1
+			send "\r"
+			expect {
+				"SigmaStar #" {
+					set timeout -1
+					break
+				}
+				"Kernel command line" {
+					puts "\n\nStopping the bootloader failed"
+					exit
+				}
+				eof { }
+			}
+			set times [ expr $times+1];
+		}
+	}
 	timeout {
-		puts "Tiemout!"
+		puts "Timeout waiting for response!"
 		exit
 	}
 }
-expect "<RealTek>"
-set timeout -1
-send "dbgmsg 3\r"
-expect "<RealTek>"
-send "ri 0 1 1\r"
-expect "<RealTek>"
-puts ""
 
-if { $ostype == 0} {
-	spawn -noecho sh -c "sx -vv -X -b $flasher_file < $tty_dev > $tty_dev"
-} elseif { $ostype == 1 } {
-	spawn -noecho sh -c "lsx -vv -X -b $flasher_file < $tty_dev > $tty_dev"
+if { $gwtype >= 4 } {
+	send "printenv bootargs\r"
+	expect "SigmaStar #"
+	set bootargs $expect_out(buffer)
+	set bootargs [string map {"printenv bootargs" ""} $bootargs]
+	set bootargs [string map {"bootargs=" ""} $bootargs]
+	set bootargs [string map {"SigmaStar #" ""} $bootargs]
+	set bootargs [string map {"/linuxrc" "/bin/sh"} $bootargs]
+	set bootargs [string trimright $bootargs]
+	set bootargs [string trim $bootargs]
+	puts "setenv bootargs $bootargs\r"
+	send "setenv bootargs $bootargs\r"
+	expect "SigmaStar #"
+	send "printenv bootargs\r"
+	expect "SigmaStar #"
+	send "run bootcmd\r"
+	set timeout -1
+	expect "/ #"
+} else {
+	expect "<RealTek>"
+	set timeout -1
+	send "dbgmsg 3\r"
+	expect "<RealTek>"
+	send "ri 0 1 1\r"
+	expect "<RealTek>"
+	puts ""
+
+	if { $ostype == 0} {
+		spawn -noecho sh -c "sx -vv -X -b $flasher_file < $tty_dev > $tty_dev"
+	} elseif { $ostype == 1 } {
+		spawn -noecho sh -c "lsx -vv -X -b $flasher_file < $tty_dev > $tty_dev"
+	}
+	set xmodem $spawn_id
+	expect -i $xmodem "Give your local XMODEM receive command now"
+	send -i $console "xmrx 80000000\r"
+	expect -i $xmodem "Transfer complete"
+	set spawn_id $console
+
+	send "\r"
+	expect "<RealTek>"
+
+	send "j 80000000\r"
+	expect "Jump to 0x80000000"
+	if { $ostype == 0} {
+		exec stty -F $tty_dev 38400
+	} elseif { $ostype == 1 } {
+		exec stty -f $tty_dev 38400
+	}
+
+	send "\r"
+	expect "<RealTek>"
+
+	# boot
+	puts "If it got 'Uncompressing Linux...LZMA: Decoding error', please try restart the gateway and try again."
+	send "bootsh\r"
+	expect "BusyBox v"
+	expect "#"
 }
-set xmodem $spawn_id
-expect -i $xmodem "Give your local XMODEM receive command now"
-send -i $console "xmrx 80000000\r"
-expect -i $xmodem "Transfer complete"
-set spawn_id $console
-
-send "\r"
-expect "<RealTek>"
-
-send "j 80000000\r"
-expect "Jump to 0x80000000"
-if { $ostype == 0} {
-	exec stty -F $tty_dev 38400
-} elseif { $ostype == 1 } {
-	exec stty -f $tty_dev 38400
-}
-
-send "\r"
-expect "<RealTek>"
-
-# boot
-puts "If it got 'Uncompressing Linux...LZMA: Decoding error', please try restart the gateway and try again."
-send "bootsh\r"
-expect "BusyBox v"
-expect "#"
 
 if { $gwtype == 0} {
 	send "mount -t ramfs ramfs /var; mkdir /var/tmp\r"
@@ -214,12 +262,25 @@ if { $gwtype == 0} {
 	send "kick_wdog_timer &\r"
 	expect "#"
 	send "kick_wdog_timer.sh &\r"
+} elseif { $gwtype >= 4 } {
+	send "mount -t ramfs ramfs /var; mkdir /var/tmp\r"
+	expect "#"
+	send "cp /etc/init.d/rcS /var/tmp/rcS\r"
+	expect "#"
+	send "sed -i 's/fw_manager.sh -r/echo skip/g' /var/tmp/rcS\r"
+	expect "#"
+	send "/var/tmp/rcS\r"
 } else {
 	exit
 }
 expect "#"
-send "passwd -d admin\r"
+if { $gwtype >= 4 } {
+	send "passwd -d root\r"
+} else {
+	send "passwd -d admin\r"
+}
 expect "#"
+
 set modelname 0
 if { $gwtype == 0} {
 	puts "\n\nGateway token in ASCII (use xxd -p to convert to 32 characters hexadecimal string):"
@@ -253,6 +314,12 @@ if { $gwtype == 0} {
 	}
 } elseif { $gwtype == 2 } {
 	send "cat /lumi/app/gw/conf/device.conf\r"
+} elseif {$gwtype >= 4} {
+	puts "\n\nGateway token in ASCII (use xxd -p to convert to 32 characters hexadecimal string):"
+	send "cat /data/miio/device.token\r"
+	expect "#"
+	puts "\nGateway Info:"
+	send "cat /data/miio/device.conf\r"
 }
 expect "#"
 
@@ -300,6 +367,7 @@ if { $gwtype == 1} {
 send "reboot\r"
 close $console
 
+set timeout -1
 send_user "\nIf this project helped you, you can treat me with a cup of coffee :)\nOpen url $coffee_url1 (y/N): "
 expect_user -re "(.*)\n"
 set test $expect_out(1,string)

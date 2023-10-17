@@ -2,19 +2,28 @@
 ; This script was reference to https://raw.githubusercontent.com/serrj-sv/lumi.gateway.mgl03/main/uart_recovery/mgl03_uart_recovery.ttl
 ;
 
-version='20230821'
+version='20231017'
 setsync 0
 show -1
 enablekeyb 0
 setspeed 38400
-
-strdim msg 4
+;setspeed 115200
+;enablekeyb 1
+;setsync 0
+;end
+strdim msg 6
 msg[0] = 'Xiaomi Multimode Gateway 1'
 msg[1] = 'Aqara Gateway M2 old Global/China, M1S, H1, P3'
 msg[2] = 'Aqara Gateway M2 Korea'
 msg[3] = 'Other Gateway with SoC RTL8197F'
+msg[4] = 'Xiaomi Multimode Gateway 2, Hub E1'
+msg[5] = 'Aqara Smart Switch Panel S1E'
 listbox 'Please select choose your gateway' 'Confirmation' msg
 gwtype=result
+if gwtype>=4 then
+  setspeed 115200
+  goto SSSoC
+fi
 yesnobox 'Would you like to try automatic bootloader interrupt?\n                (choose "No" if it fails for you)' 'Bootloader' 1
 if result then
   messagebox '1. Connect Gateway to UART\n2. Disconnect Gateway from power\n3. Press OK' 'Start' 1
@@ -86,6 +95,32 @@ dispstr 'If it got "Uncompressing Linux...LZMA: Decoding error", please try rest
 sendln 'bootsh'
 wait ''
 wait 'BusyBox v'
+
+:SSSoC
+if gwtype>=4 then
+  mtimeout=1
+  setsync 1
+  while 1
+    wait 'IPL_CUST'
+    if result break
+  endwhile
+  while 1
+    send ''#13
+    wait '#'
+    if result break
+  endwhile
+  mtimeout=0
+  wait 'SigmaStar #'
+  sendln 'printenv bootargs'
+  waitln 'bootargs='
+  bootargs=inputstr
+  strreplace bootargs 1 'bootargs=' ''
+  strreplace bootargs 1 '/linuxrc' '/bin/sh'
+  sendln 'setenv bootargs ' bootargs
+  wait 'SigmaStar #'
+  sendln 'run bootcmd'
+endif
+
 wait '#'
 if gwtype=0 then
   sendln 'mount -t ramfs ramfs /var; mkdir /var/tmp'
@@ -109,6 +144,24 @@ elseif gwtype=2 then
   sendln 'kick_wdog_timer &'
   wait '#'
   sendln 'mount -t yaffs2 -o tags-ecc-off -o inband-tags /dev/mtdblock7 /lumi'
+elseif gwtype=4 then
+  wait '/ #'
+  sendln 'mount -t ramfs ramfs /var; mkdir /var/tmp'
+  wait '#'
+  sendln 'cp /etc/init.d/rcS /var/tmp/rcS'
+  wait '#'
+  sendln "sed -i 's/fw_manager.sh -r/echo skip/g' /var/tmp/rcS"
+  wait '#'
+  sendln '/var/tmp/rcS'
+elseif gwtype=5 then
+  wait '/ #'
+  sendln 'mount -t ramfs ramfs /var; mkdir /var/tmp'
+  wait '#'
+  sendln 'cp /etc/init.d/rcS /var/tmp/rcS'
+  wait '#'
+  sendln "sed -i 's/fw_manager.sh -r/echo skip/g' /var/tmp/rcS"
+  wait '#'
+  sendln '/var/tmp/rcS'
 else
   sendln 'mount -t proc proc /proc; mount -t ramfs ramfs /var; mount -t sysfs sysfs /sys; mkdir /var/tmp'
   wait '#'
@@ -118,8 +171,14 @@ else
   wait '#'
   sendln 'kick_wdog_timer.sh &'
 endif
-wait '#'
-sendln 'passwd -d admin'
+
+if gwtype>=4 then
+  wait '/ #'
+  sendln 'passwd -d root'
+else
+  wait '#'
+  sendln 'passwd -d admin'
+endif
 wait '#'
 if gwtype=0 then
   sendln 'echo \n\nGateway token in ASCII (use xxd -p to convert to 32 characters hexadecimal string):'
@@ -139,7 +198,24 @@ elseif gwtype=1 then
   model=inputstr
 elseif gwtype=2 then
   sendln 'cat /lumi/app/gw/conf/device.conf'
+elseif gwtype=4 then
+  sendln 'echo "Gateway token in ASCII (use xxd -p to convert to 32 characters hexadecimal string):"'
+  send ''#13
+  sendln 'cat /data/miio/device.token'
+  wait '#'
+  sendln 'echo "Gateway Info:"'
+  sendln 'cat /data/miio/device.conf'
+  waitln 'model='
+  model=inputstr
+elseif gwtype=5 then
+  sendln 'echo "Gateway Info:"'
+  sendln 'cat /data/miio/device.conf'
+  waitln 'model='
+  model=inputstr
+else
+  send ''#13
 endif
+
 wait '#'
 if gwtype=1 then
   message="Gateway clear password complete, and the gateway info is showed, then it will be rebooted! \n If the gateway is CN or new Global version, you can flash modified firmware after reboot to enable telnet."
@@ -195,7 +271,11 @@ showtt -1
 showtt 1
 mpause 100
 sendln 'reboot'
-setspeed 38400
+if gwtype>=4 then
+  setspeed 115200
+else
+  setspeed 38400
+endif
 enablekeyb 1
 setsync 0
 yesnobox 'If this project helped you, you can treat us with a cup of coffee :)' 'Thank you!'
