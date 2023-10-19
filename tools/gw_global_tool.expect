@@ -4,7 +4,7 @@
 # This script was reference to https://raw.githubusercontent.com/serrj-sv/lumi.gateway.mgl03/main/uart_recovery/mgl03_uart_recovery.ttl
 #
 
-set version "20231017"
+set version "20231019"
 
 set inputgw [lindex $argv 0]
 set inputtty [lindex $argv 1]
@@ -246,6 +246,7 @@ if { $gwtype == 0} {
 	send "cp /etc/init.d/rcS /var/tmp/rcS\r"
 	expect "#"
 	send "sed -i 's/fw_manager.sh -r/echo skip/g' /var/tmp/rcS\r"
+	send "sed -i 's/${CUSTOM_POST_INIT} &/echo skip/g' /var/tmp/rcS\r"
 	expect "#"
 	send "/var/tmp/rcS\r"
 } elseif { $gwtype == 2 } {
@@ -262,12 +263,13 @@ if { $gwtype == 0} {
 	send "kick_wdog_timer &\r"
 	expect "#"
 	send "kick_wdog_timer.sh &\r"
-} elseif { $gwtype >= 4 } {
+} elseif { ( $gwtype == 4 ) || (  $gwtype == 5 ) } {
 	send "mount -t ramfs ramfs /var; mkdir /var/tmp\r"
 	expect "#"
 	send "cp /etc/init.d/rcS /var/tmp/rcS\r"
 	expect "#"
 	send "sed -i 's/fw_manager.sh -r/echo skip/g' /var/tmp/rcS\r"
+	send "sed -i 's/${CUSTOM_POST_INIT} &/echo skip/g' /var/tmp/rcS\r"
 	expect "#"
 	send "/var/tmp/rcS\r"
 } else {
