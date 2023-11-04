@@ -4,7 +4,7 @@
 # This script was reference to https://raw.githubusercontent.com/serrj-sv/lumi.gateway.mgl03/main/uart_recovery/mgl03_uart_recovery.ttl
 #
 
-set version "20231019"
+set version "20231104
 
 set inputgw [lindex $argv 0]
 set inputtty [lindex $argv 1]
@@ -63,7 +63,7 @@ if { $idx == 0 } {
 } elseif { $idx == 3 } {
 	set flasher_file "[pwd]/flasher.bin"
 	puts "\nOther Gateway with SoC RTL8197F"
-} elseif { $idx == 4 || $idx == 5} {
+} elseif { $idx == 4 || $idx == 5 } {
 	puts "\nOther Gateway or device"
 } else {
 	puts "\nFalse : $idx\n"
@@ -74,7 +74,7 @@ set gwtype $idx
 if { $inputtty == "" } {
 
 	# serial connection
-	if { $ostype == 0} {
+	if { $ostype == 0 } {
 		set files [glob -directory [cd /sys/class/tty/] -tails ttyUSB*]
 	} elseif { $ostype == 1 } {
 		set files [glob -directory [cd /dev/] -tails cu.*]
@@ -92,7 +92,7 @@ if { $inputtty == "" } {
 		append tty_devs($idx) $x
 		incr idx
 	}
-	if {$idx == 0} {
+	if { $idx == 0 } {
 		puts "There is no serial device(tty USB)!"
 		exit
 	}
@@ -101,10 +101,10 @@ if { $inputtty == "" } {
 	send_user "\nEnter serial device ($idx): "
 	expect_user -re "(.*)\n"
 	set test $expect_out(1,string)
-	if {$test != ""} {
+	if { $test != "" } {
 		set idx $test
 	}
-	if {$idx >= $n_tty_devs} {
+	if { $idx >= $n_tty_devs } {
 		puts "Wrong choice!"
 		exit
 	}
@@ -113,7 +113,7 @@ if { $inputtty == "" } {
 	set tty_dev $inputtty
 }
 
-if { $idx == 4 || $idx == 5} {
+if { $idx == 4 || $idx == 5 } {
 	set tty_baudrate 115200
 } else {
 	set tty_baudrate 38400
@@ -122,7 +122,7 @@ puts "Connecting to $tty_dev\n"
 set tty_id [open $tty_dev r+]
 
 # serial port parameters
-if { $ostype == 0} {
+if { $ostype == 0 } {
 	exec stty -F $tty_dev $tty_baudrate raw -ixon -crtscts -echo -istrip -hup
 } elseif { $ostype == 1 } {
 	exec stty -f $tty_dev $tty_baudrate raw -ixon -crtscts -echo -istrip -hup
@@ -200,7 +200,7 @@ if { $gwtype >= 4 } {
 	expect "<RealTek>"
 	puts ""
 
-	if { $ostype == 0} {
+	if { $ostype == 0 } {
 		spawn -noecho sh -c "sx -vv -X -b $flasher_file < $tty_dev > $tty_dev"
 	} elseif { $ostype == 1 } {
 		spawn -noecho sh -c "lsx -vv -X -b $flasher_file < $tty_dev > $tty_dev"
@@ -216,7 +216,7 @@ if { $gwtype >= 4 } {
 
 	send "j 80000000\r"
 	expect "Jump to 0x80000000"
-	if { $ostype == 0} {
+	if { $ostype == 0 } {
 		exec stty -F $tty_dev 38400
 	} elseif { $ostype == 1 } {
 		exec stty -f $tty_dev 38400
@@ -232,7 +232,7 @@ if { $gwtype >= 4 } {
 	expect "#"
 }
 
-if { $gwtype == 0} {
+if { $gwtype == 0 } {
 	send "mount -t ramfs ramfs /var; mkdir /var/tmp\r"
 	expect "#"
 	send "cp /etc/init.d/rcS /var/tmp/rcS\r"
@@ -246,7 +246,7 @@ if { $gwtype == 0} {
 	send "cp /etc/init.d/rcS /var/tmp/rcS\r"
 	expect "#"
 	send "sed -i 's/fw_manager.sh -r/echo skip/g' /var/tmp/rcS\r"
-	send "sed -i 's/${CUSTOM_POST_INIT} &/echo skip/g' /var/tmp/rcS\r"
+	# send "sed -i 's/${CUSTOM_POST_INIT} &/echo skip/g' /var/tmp/rcS\r"
 	expect "#"
 	send "/var/tmp/rcS\r"
 } elseif { $gwtype == 2 } {
@@ -284,14 +284,14 @@ if { $gwtype >= 4 } {
 expect "#"
 
 set modelname 0
-if { $gwtype == 0} {
+if { $gwtype == 0 } {
 	puts "\n\nGateway token in ASCII (use xxd -p to convert to 32 characters hexadecimal string):"
 	send "cat /data/miio/device.token\r"
 	expect "#"
 	puts "\nGateway Info:"
 	send "cat /data/miio/device.conf\r"
 } elseif { $gwtype == 1 } {
-	send "setprop persist.app.tty_enable truer\r"
+	send "setprop persist.app.tty_enable true\r"
 	expect "#"
 	puts "\nGateway Info:"
 	send "getprop | grep miio\r"
@@ -316,7 +316,7 @@ if { $gwtype == 0} {
 	}
 } elseif { $gwtype == 2 } {
 	send "cat /lumi/app/gw/conf/device.conf\r"
-} elseif {$gwtype >= 4} {
+} elseif {$gwtype >= 4 } {
 	puts "\n\nGateway token in ASCII (use xxd -p to convert to 32 characters hexadecimal string):"
 	send "cat /data/miio/device.token\r"
 	expect "#"
@@ -325,13 +325,13 @@ if { $gwtype == 0} {
 }
 expect "#"
 
-if { $gwtype == 1} {
+if { $gwtype == 1 } {
 	puts "\nGateway clear password complete, and the gateway info is showed, then it will be rebooted!\n If the gateway is CN or new Global version, you can flash modified firmware after reboot to enable telnet."
 
 	send_user "\nWould you like to flash M2 modified firmware? (y/N): "
 	expect_user -re "(.*)\n"
 	set test $expect_out(1,string)
-	if {$test == "y"} {
+	if { $test == "y" } {
 		puts "1. Connect Gateway to ethernet \n2. Make sure that gateway connect to internet (access to github) \n3.While flashing firmware, PLEASE donot disconnect the power"
 		send "fw_manager.sh -r\r"
 		set timeout 10
@@ -340,19 +340,19 @@ if { $gwtype == 1} {
 		set timeout -1
 		send "cd /tmp && wget -O /tmp/curl "http://master.dl.sourceforge.net/project/mgl03/bin/curl?viasf=1" && chmod a+x /tmp/curl\r"
 		expect "#"
-		if { $modelname == 1} {
+		if { $modelname == 1 } {
 			send "/tmp/curl -s -k -L -o /tmp/m1s_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/M1S/m1s_update.sh\r"
 			expect "#"
 			send "chmod a+x /tmp/m1s_update.sh && /tmp/m1s_update.sh\r"
-		} elseif { $gwtype == 2} {
+		} elseif { $gwtype == 2 } {
 			send "/tmp/curl -s -k -L -o /tmp/p3_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/P3/p3_update.sh\r"
 			expect "#"
 			send "chmod a+x /tmp/p3_update.sh && /tmp/p3_update.sh\r"
-		} elseif { $gwtype == 3} {
+		} elseif { $gwtype == 3 } {
 			send "/tmp/curl -s -k -L -o /tmp/m2_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/M2/m2_update.sh\r"
 			expect "#"
 			send "chmod a+x /tmp/m2_update.sh && /tmp/m2_update.sh\r"
-		} elseif { $gwtype == 4} {
+		} elseif { $gwtype == 4 } {
 			send "/tmp/curl -s -k -L -o /tmp/h1_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/H1/h1_update.sh\r"
 			expect "#"
 			send "chmod a+x /tmp/h1_update.sh && /tmp/h1_update.sh\r"
@@ -374,7 +374,7 @@ send_user "\nIf this project helped you, you can treat me with a cup of coffee :
 expect_user -re "(.*)\n"
 set test $expect_out(1,string)
 if {$test == "y"} {
-	if { $ostype == 0} {
+	if { $ostype == 0 } {
 		exec xdg-open $coffee_url1
 		exec xdg-open $coffee_url2
 	} elseif { $ostype == 1 } {
