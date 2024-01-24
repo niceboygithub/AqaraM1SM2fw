@@ -4,7 +4,7 @@
 # This script was reference to https://raw.githubusercontent.com/serrj-sv/lumi.gateway.mgl03/main/uart_recovery/mgl03_uart_recovery.ttl
 #
 
-set version "20231104
+set version "20231104"
 
 set inputgw [lindex $argv 0]
 set inputtty [lindex $argv 1]
