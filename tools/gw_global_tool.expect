@@ -4,7 +4,7 @@
 # This script was reference to https://raw.githubusercontent.com/serrj-sv/lumi.gateway.mgl03/main/uart_recovery/mgl03_uart_recovery.ttl
 #
 
-set version "20231104"
+set version "20240131"
 
 set inputgw [lindex $argv 0]
 set inputtty [lindex $argv 1]
@@ -283,7 +283,7 @@ if { $gwtype >= 4 } {
 }
 expect "#"
 
-set modelname 0
+set modeltype 0
 if { $gwtype == 0 } {
 	puts "\n\nGateway token in ASCII (use xxd -p to convert to 32 characters hexadecimal string):"
 	send "cat /data/miio/device.token\r"
@@ -299,19 +299,19 @@ if { $gwtype == 0 } {
 	send "getprop persist.sys.model\r"
 	expect {
 		"lumi.gateway.acn01" {
-			set modelname 1
+			set modeltype 1
 		}
 		"lumi.aircondition.acn05" {
-			set modelname 2
+			set modeltype 2
 		}
 		"lumi.gateway.iragl5" {
-			set modelname 3
+			set modeltype 3
 		}
 		"lumi.gateway.agl001" {
-			set modelname 3
+			set modeltype 3
 		}
 		"lumi.gateway.sacn01" {
-			set modelname 4
+			set modeltype 4
 		}
 	}
 } elseif { $gwtype == 2 } {
@@ -338,21 +338,21 @@ if { $gwtype == 1 } {
 		expect "mDNSResponder"
 		expect "#"
 		set timeout -1
-		send "cd /tmp && wget -O /tmp/curl "http://master.dl.sourceforge.net/project/mgl03/bin/curl?viasf=1" && chmod a+x /tmp/curl\r"
+		send "cd /tmp && wget -O /tmp/curl 'http://master.dl.sourceforge.net/project/mgl03/bin/curl?viasf=1' && chmod a+x /tmp/curl\r"
 		expect "#"
-		if { $modelname == 1 } {
+		if { $modeltype == 1 } {
 			send "/tmp/curl -s -k -L -o /tmp/m1s_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/M1S/m1s_update.sh\r"
 			expect "#"
 			send "chmod a+x /tmp/m1s_update.sh && /tmp/m1s_update.sh\r"
-		} elseif { $gwtype == 2 } {
+		} elseif { $modeltype == 2 } {
 			send "/tmp/curl -s -k -L -o /tmp/p3_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/P3/p3_update.sh\r"
 			expect "#"
 			send "chmod a+x /tmp/p3_update.sh && /tmp/p3_update.sh\r"
-		} elseif { $gwtype == 3 } {
+		} elseif { $modeltype == 3 } {
 			send "/tmp/curl -s -k -L -o /tmp/m2_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/M2/m2_update.sh\r"
 			expect "#"
 			send "chmod a+x /tmp/m2_update.sh && /tmp/m2_update.sh\r"
-		} elseif { $gwtype == 4 } {
+		} elseif { $modeltype == 4 } {
 			send "/tmp/curl -s -k -L -o /tmp/h1_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/H1/h1_update.sh\r"
 			expect "#"
 			send "chmod a+x /tmp/h1_update.sh && /tmp/h1_update.sh\r"
