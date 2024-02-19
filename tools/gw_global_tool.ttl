@@ -2,7 +2,7 @@
 ; This script was reference to https://raw.githubusercontent.com/serrj-sv/lumi.gateway.mgl03/main/uart_recovery/mgl03_uart_recovery.ttl
 ;
 
-version='20231019'
+version='20240218'
 setsync 0
 show -1
 enablekeyb 0
@@ -15,6 +15,7 @@ msg[2] = 'Aqara Gateway M2 Korea'
 msg[3] = 'Other Gateway with SoC RTL8197F'
 msg[4] = 'Xiaomi Multimode Gateway 2, Hub E1'
 msg[5] = 'Aqara Smart Switch Panel S1E'
+msg[6] = 'Aqara Gateway M3'
 listbox 'Please select choose your gateway' 'Confirmation' msg
 gwtype=result
 if gwtype>=4 then
@@ -116,12 +117,21 @@ if gwtype>=4 then
   wait 'SigmaStar #'
   enablekeyb 0
   mtimeout=0
-  sendln 'printenv bootargs'
-  waitln 'bootargs='
-  bootargs=inputstr
-  strreplace bootargs 1 'bootargs=' ''
-  strreplace bootargs 1 '/linuxrc' '/bin/sh'
-  sendln 'setenv bootargs ' bootargs
+  if gwtype>=6 then
+    sendln 'printenv update_bootargs'
+    waitln 'bootargs='
+    bootargs=inputstr
+    strreplace bootargs 1 'bootargs=' ''
+    strreplace bootargs 1 '/linuxrc' '/bin/sh'
+    sendln 'setenv update_bootargs ' bootargs
+  else
+    sendln 'printenv bootargs'
+    waitln 'bootargs='
+    bootargs=inputstr
+    strreplace bootargs 1 'bootargs=' ''
+    strreplace bootargs 1 '/linuxrc' '/bin/sh'
+    sendln 'setenv bootargs ' bootargs
+  endif
   wait 'SigmaStar #'
   sendln 'run bootcmd'
 endif
@@ -150,7 +160,7 @@ elseif gwtype=2 then
   sendln 'kick_wdog_timer &'
   wait '#'
   sendln 'mount -t yaffs2 -o tags-ecc-off -o inband-tags /dev/mtdblock7 /lumi'
-elseif gwtype=4 || gwtype=5 then
+elseif gwtype=4 || gwtype=5 || gwtype=6 then
   wait '/ #'
   sendln 'mount -t ramfs ramfs /var; mkdir /var/tmp'
   wait '#'
@@ -206,7 +216,7 @@ elseif gwtype=4 then
   waitln 'model='
   model=inputstr
   send ''#13
-elseif gwtype=5 then
+elseif gwtype=5 || gwtype=6 then
   dispstr '   S1E Info:' 10 10 13
   sendln 'agetprop | grep miio'
   waitln 'miio'
@@ -238,6 +248,8 @@ if gwtype=1 then
     sendln 'fw_manager.sh -r'
     mtimeout=10
     wait 'mDNSResponder' '#'
+    sendln 'ping -c 6 8.8.8.8'
+    wait 'ttl'
     mtimeout=0
     sendln 'cd /tmp && wget -O /tmp/curl "http://master.dl.sourceforge.net/project/mgl03/bin/curl?viasf=1" && chmod a+x /tmp/curl'
     wait '#'

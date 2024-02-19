@@ -4,7 +4,19 @@
 # This script was reference to https://raw.githubusercontent.com/serrj-sv/lumi.gateway.mgl03/main/uart_recovery/mgl03_uart_recovery.ttl
 #
 
-set version "20240131"
+proc connect {ip} {
+  set timeout 60
+  send "ping -c 6 $ip\r"
+  expect {
+    "ttl" {
+      return 0
+    }
+  }
+  # Timed out
+  return 1
+}
+
+set version "20240218"
 
 set inputgw [lindex $argv 0]
 set inputtty [lindex $argv 1]
@@ -32,7 +44,7 @@ set coffee_url2 "https://buymeacoff.ee/niceboygithub"
 
 puts "\n\nConnect Gateway to UART, disconnect it from power\n"
 
-if {  $inputgw == 0 || $inputgw == 1 || $inputgw == 2 || $inputgw == 3 || $inputgw == 4 || $inputgw == 5 } {
+if {  $inputgw == 0 || $inputgw == 1 || $inputgw == 2 || $inputgw == 3 || $inputgw == 4 || $inputgw == 5 || $inputgw == 6} {
 	set idx $inputgw
 } else {
 	puts "Please select choose your gateway:"
@@ -42,6 +54,7 @@ if {  $inputgw == 0 || $inputgw == 1 || $inputgw == 2 || $inputgw == 3 || $input
 	puts "\[3\] Other Gateway with SoC RTL8197F"
 	puts "\[4\] Xiaomi Multimode Gateway 2, Hub E1"
 	puts "\[5\] Aqara Smart Switch Panel S1E"
+	puts "\[6\] Aqara Gateway M3"
 	set idx 0
 	send_user "Choose gateway ($idx): "
 	expect_user -re "(.*)\n"
@@ -63,7 +76,7 @@ if { $idx == 0 } {
 } elseif { $idx == 3 } {
 	set flasher_file "[pwd]/flasher.bin"
 	puts "\nOther Gateway with SoC RTL8197F"
-} elseif { $idx == 4 || $idx == 5 } {
+} elseif { $idx == 4 || $idx == 5 || $idx == 6 } {
 	puts "\nOther Gateway or device"
 } else {
 	puts "\nFalse : $idx\n"
@@ -113,7 +126,7 @@ if { $inputtty == "" } {
 	set tty_dev $inputtty
 }
 
-if { $idx == 4 || $idx == 5 } {
+if { $idx == 4 || $idx == 5 || $idx == 6 } {
 	set tty_baudrate 115200
 } else {
 	set tty_baudrate 38400
@@ -172,8 +185,25 @@ expect {
 		exit
 	}
 }
-
-if { $gwtype >= 4 } {
+if { $gwtype == 6 } {
+	send "printenv update_bootargs\r"
+	expect "SigmaStar #"
+	set bootargs $expect_out(buffer)
+	set bootargs [string map {"printenv bootargs" ""} $bootargs]
+	set bootargs [string map {"bootargs=" ""} $bootargs]
+	set bootargs [string map {"SigmaStar #" ""} $bootargs]
+	set bootargs [string map {"/linuxrc" "/bin/sh"} $bootargs]
+	set bootargs [string trimright $bootargs]
+	set bootargs [string trim $bootargs]
+	puts "setenv update_bootargs $bootargs\r"
+	send "setenv update_bootargs $bootargs\r"
+	expect "SigmaStar #"
+	send "printenv update_bootargs\r"
+	expect "SigmaStar #"
+	send "run bootcmd\r"
+	set timeout -1
+	expect "/ #"
+} elseif { $gwtype >= 4 } {
 	send "printenv bootargs\r"
 	expect "SigmaStar #"
 	set bootargs $expect_out(buffer)
@@ -263,7 +293,7 @@ if { $gwtype == 0 } {
 	send "kick_wdog_timer &\r"
 	expect "#"
 	send "kick_wdog_timer.sh &\r"
-} elseif { ( $gwtype == 4 ) || (  $gwtype == 5 ) } {
+} elseif { ( $gwtype == 4 ) || (  $gwtype == 5 ) || ( $gwtype == 6 ) } {
 	send "mount -t ramfs ramfs /var; mkdir /var/tmp\r"
 	expect "#"
 	send "cp /etc/init.d/rcS /var/tmp/rcS\r"
@@ -333,34 +363,38 @@ if { $gwtype == 1 } {
 	set test $expect_out(1,string)
 	if { $test == "y" } {
 		puts "1. Connect Gateway to ethernet \n2. Make sure that gateway connect to internet (access to github) \n3.While flashing firmware, PLEASE donot disconnect the power"
-		send "fw_manager.sh -r\r"
 		set timeout 10
+		send "fw_manager.sh -r\r"
 		expect "mDNSResponder"
 		expect "#"
-		set timeout -1
-		send "cd /tmp && wget -O /tmp/curl 'http://master.dl.sourceforge.net/project/mgl03/bin/curl?viasf=1' && chmod a+x /tmp/curl\r"
-		expect "#"
-		if { $modeltype == 1 } {
-			send "/tmp/curl -s -k -L -o /tmp/m1s_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/M1S/m1s_update.sh\r"
+		set rez [connect "8.8.8.8"]
+		if { $rez == 0 } {
+			set timeout -1
+			send "cd /tmp && wget -O /tmp/curl "http://master.dl.sourceforge.net/project/mgl03/bin/curl?viasf=1" && chmod a+x /tmp/curl\r"
 			expect "#"
-			send "chmod a+x /tmp/m1s_update.sh && /tmp/m1s_update.sh\r"
-		} elseif { $modeltype == 2 } {
-			send "/tmp/curl -s -k -L -o /tmp/p3_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/P3/p3_update.sh\r"
+			if { $modeltype == 1 } {
+				send "/tmp/curl -s -k -L -o /tmp/m1s_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/M1S/m1s_update.sh\r"
+				expect "#"
+				send "chmod a+x /tmp/m1s_update.sh && /tmp/m1s_update.sh\r"
+			} elseif { $modeltype == 2 } {
+				send "/tmp/curl -s -k -L -o /tmp/p3_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/P3/p3_update.sh\r"
+				expect "#"
+				send "chmod a+x /tmp/p3_update.sh && /tmp/p3_update.sh\r"
+			} elseif { $modeltype == 3 } {
+				send "/tmp/curl -s -k -L -o /tmp/m2_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/M2/m2_update.sh\r"
+				expect "#"
+				send "chmod a+x /tmp/m2_update.sh && /tmp/m2_update.sh\r"
+			} elseif { $modeltype == 4 } {
+				send "/tmp/curl -s -k -L -o /tmp/h1_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/H1/h1_update.sh\r"
+				expect "#"
+				send "chmod a+x /tmp/h1_update.sh && /tmp/h1_update.sh\r"
+			} else {
+				puts "Error: Unkown supported gateway"
+				send "\r"
+			}
 			expect "#"
-			send "chmod a+x /tmp/p3_update.sh && /tmp/p3_update.sh\r"
-		} elseif { $modeltype == 3 } {
-			send "/tmp/curl -s -k -L -o /tmp/m2_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/M2/m2_update.sh\r"
-			expect "#"
-			send "chmod a+x /tmp/m2_update.sh && /tmp/m2_update.sh\r"
-		} elseif { $modeltype == 4 } {
-			send "/tmp/curl -s -k -L -o /tmp/h1_update.sh https://raw.githubusercontent.com/niceboygithub/AqaraM1SM2fw/main/modified/H1/h1_update.sh\r"
-			expect "#"
-			send "chmod a+x /tmp/h1_update.sh && /tmp/h1_update.sh\r"
-		} else {
-			puts "Error: Unkown supported gateway"
-			send "\r"
 		}
-		expect "#"
+		puts "\nError: network connection has problem!\n"
 	}
 } else {
 	puts "\nGateway clear password complete, and the gateway info is showed, then it will be rebooted!"
