@@ -8,7 +8,7 @@ show -1
 enablekeyb 0
 setspeed 38400
 
-strdim msg 6
+strdim msg 7
 msg[0] = 'Xiaomi Multimode Gateway 1'
 msg[1] = 'Aqara Gateway M2 old Global/China, M1S, H1, P3'
 msg[2] = 'Aqara Gateway M2 Korea'
