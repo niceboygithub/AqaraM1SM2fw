@@ -190,7 +190,7 @@ if { $gwtype == 6 } {
 	expect "SigmaStar #"
 	set bootargs $expect_out(buffer)
 	set bootargs [string map {"printenv bootargs" ""} $bootargs]
-	set bootargs [string map {"bootargs=" ""} $bootargs]
+	set bootargs [string map {"update_bootargs=" ""} $bootargs]
 	set bootargs [string map {"SigmaStar #" ""} $bootargs]
 	set bootargs [string map {"/linuxrc" "/bin/sh"} $bootargs]
 	set bootargs [string trimright $bootargs]
@@ -346,7 +346,15 @@ if { $gwtype == 0 } {
 	}
 } elseif { $gwtype == 2 } {
 	send "cat /lumi/app/gw/conf/device.conf\r"
-} elseif {$gwtype >= 4 } {
+} elseif { $gwtype == 6 } {
+	send "setprop persist.app.debug_mode true\r"
+	expect "#"
+	puts "\n\nGateway token in ASCII (use xxd -p to convert to 32 characters hexadecimal string):"
+	send "cat /data/miio/device.token\r"
+	expect "#"
+	puts "\nGateway Info:"
+	send "cat /data/miio/device.conf\r"
+} elseif { $gwtype >= 4 } {
 	puts "\n\nGateway token in ASCII (use xxd -p to convert to 32 characters hexadecimal string):"
 	send "cat /data/miio/device.token\r"
 	expect "#"

@@ -119,9 +119,9 @@ if gwtype>=4 then
   mtimeout=0
   if gwtype>=6 then
     sendln 'printenv update_bootargs'
-    waitln 'bootargs='
+    waitln 'update_bootargs='
     bootargs=inputstr
-    strreplace bootargs 1 'bootargs=' ''
+    strreplace bootargs 1 'update_bootargs=' ''
     strreplace bootargs 1 '/linuxrc' '/bin/sh'
     sendln 'setenv update_bootargs ' bootargs
   else
@@ -217,7 +217,9 @@ elseif gwtype=4 then
   model=inputstr
   send ''#13
 elseif gwtype=5 || gwtype=6 then
-  dispstr '   S1E Info:' 10 10 13
+  sendln 'asetprop persist.app.debug_mode true'
+  wait '#'
+  dispstr '   S1E/M3 Info:' 10 10 13
   sendln 'agetprop | grep miio'
   waitln 'miio'
   model=inputstr
