@@ -126,7 +126,7 @@ if { $inputtty == "" } {
 	set tty_dev $inputtty
 }
 
-if { $idx == 4 || $idx == 5 || $idx == 6 } {
+if { $gwtype == 4 || $gwtype == 5 || $gwtype == 6 } {
 	set tty_baudrate 115200
 } else {
 	set tty_baudrate 38400
@@ -299,7 +299,7 @@ if { $gwtype == 0 } {
 	send "cp /etc/init.d/rcS /var/tmp/rcS\r"
 	expect "#"
 	send "sed -i 's/fw_manager.sh -r/echo skip/g' /var/tmp/rcS\r"
-	send "sed -i 's/${CUSTOM_POST_INIT} &/echo skip/g' /var/tmp/rcS\r"
+	#send "sed -i 's/${CUSTOM_POST_INIT} &/echo skip/g' /var/tmp/rcS\r"
 	expect "#"
 	send "/var/tmp/rcS\r"
 } else {
@@ -347,7 +347,7 @@ if { $gwtype == 0 } {
 } elseif { $gwtype == 2 } {
 	send "cat /lumi/app/gw/conf/device.conf\r"
 } elseif { $gwtype == 6 } {
-	send "setprop persist.app.debug_mode true\r"
+	send "asetprop persist.app.debug_mode true; asetprop persist.app.tty_enable true\r"
 	expect "#"
 	puts "\n\nGateway token in ASCII (use xxd -p to convert to 32 characters hexadecimal string):"
 	send "cat /data/miio/device.token\r"
@@ -355,6 +355,8 @@ if { $gwtype == 0 } {
 	puts "\nGateway Info:"
 	send "cat /data/miio/device.conf\r"
 } elseif { $gwtype >= 4 } {
+	send "asetprop persist.app.debug_mode true; asetprop persist.app.tty_enable true\r"
+	expect "#"
 	puts "\n\nGateway token in ASCII (use xxd -p to convert to 32 characters hexadecimal string):"
 	send "cat /data/miio/device.token\r"
 	expect "#"
